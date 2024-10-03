@@ -1,0 +1,2 @@
+[ ] RGB numbers right align
+[ ] floating point available in CHDK 1.6 imath -> fmath 
