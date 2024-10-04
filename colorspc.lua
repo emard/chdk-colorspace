@@ -7,6 +7,7 @@
 #meter_size_y=400 "Meter height Y" [20 999]
 #enable_raw=false "Enable raw"
 #calibrate=false "Calibrate"
+#gardner=11 "Gardner Yellow" [1 18]
 #calib_r=500 "Calib Red"   [0 999]
 #calib_g=500 "Calib Green" [0 999]
 #calib_b=500 "Calib Blue"  [0 999]
@@ -107,6 +108,31 @@ function draw_digits(x,y,d,w,h,p,t,r,g,b) -- 7-segment display
   end
 end -- 7-segment display
 -- **** end 7-segment display ****
+
+-- **** color reference tables ***
+-- gardner is standard for shades of yellow
+-- https://www.shimadzu.com/an/sites/shimadzu.com.an/files/pim/pim_document_file/applications/application_note/13384/sia116002.pdf
+GARDNER2XY1E4 =
+{
+  {3177,3303}, -- 1
+  {3233,3352}, -- 2
+  {3329,3452}, -- 3
+  {3437,3644}, -- 4
+  {3558,3840}, -- 5
+  {3767,4061}, -- 6
+  {4044,4352}, -- 7
+  {4207,4498}, -- 8
+  {4340,4640}, -- 9
+  {4503,4760}, -- 10
+  {4842,4818}, -- 11
+  {5077,4638}, -- 12
+  {5392,4458}, -- 13
+  {5646,4270}, -- 14
+  {5857,4089}, -- 15
+  {6047,3921}, -- 16
+  {6290,3701}, -- 17
+  {6477,3521}, -- 18
+}
 
 
 -- ******** begin color space conversion *********
@@ -304,6 +330,7 @@ function do_colorspace()
 
   set_console_layout(0,0,40,12)
   --printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
+  --printf("gardner %d: x=0.%d y=0.%d", gardner, GARDNER2XY1E4[gardner][1], GARDNER2XY1E4[gardner][2] )
   printf("R=%s G=%s B=%s",str1E3(r,6),str1E3(g,6),str1E3(b,6))
   printf("x=%s y=%s (CIE)",str1E3(CIE_x,6),str1E3(CIE_y,6))
   --logfile=io.open("A/colorspc.log","wb")
