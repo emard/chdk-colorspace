@@ -211,9 +211,8 @@ function igama(ivar)
   else
     var = fmath.div(var, gama_div)
   end
-  var = var * 1000
 
-  return var:int()
+  return var * 1000
 end
 
 -- colorspace conversion formula
@@ -235,25 +234,25 @@ function rgb2xyz(var_R, var_G, var_B)
   -- Observer = 2°, Illuminant = D65
   -- local space_illum = "s_D65"
   local space_illum = illuminant[illuminant.index]
-  local xr = RGB2XYZ1E7[space_illum][1][1] / 10000
-  local xg = RGB2XYZ1E7[space_illum][1][2] / 10000
-  local xb = RGB2XYZ1E7[space_illum][1][3] / 10000
-  local yr = RGB2XYZ1E7[space_illum][2][1] / 10000
-  local yg = RGB2XYZ1E7[space_illum][2][2] / 10000
-  local yb = RGB2XYZ1E7[space_illum][2][3] / 10000
-  local zr = RGB2XYZ1E7[space_illum][3][1] / 10000
-  local zg = RGB2XYZ1E7[space_illum][3][2] / 10000
-  local zb = RGB2XYZ1E7[space_illum][3][3] / 10000
+  local xr = fmath.new(RGB2XYZ1E7[space_illum][1][1], 10000)
+  local xg = fmath.new(RGB2XYZ1E7[space_illum][1][2], 10000)
+  local xb = fmath.new(RGB2XYZ1E7[space_illum][1][3], 10000)
+  local yr = fmath.new(RGB2XYZ1E7[space_illum][2][1], 10000)
+  local yg = fmath.new(RGB2XYZ1E7[space_illum][2][2], 10000)
+  local yb = fmath.new(RGB2XYZ1E7[space_illum][2][3], 10000)
+  local zr = fmath.new(RGB2XYZ1E7[space_illum][3][1], 10000)
+  local zg = fmath.new(RGB2XYZ1E7[space_illum][3][2], 10000)
+  local zb = fmath.new(RGB2XYZ1E7[space_illum][3][3], 10000)
 
   -- RGB to XYZ conversion (matrix dot-product)
   -- [X]   [xr xg xb]   [R]
   -- [Y] = [yr yg yb] . [G]
   -- [Z]   [zr zg zb]   [B]
-  local X = imath.mul(var_R, xr) + imath.mul(var_G, xg) + imath.mul(var_B, xb)
-  local Y = imath.mul(var_R, yr) + imath.mul(var_G, yg) + imath.mul(var_B, yb)
-  local Z = imath.mul(var_R, zr) + imath.mul(var_G, zg) + imath.mul(var_B, zb)
+  local X = var_R * xr + var_G * xg + var_B * xb
+  local Y = var_R * yr + var_G * yg + var_B * yb
+  local Z = var_R * zr + var_G * zg + var_B * zb
 
-  return X,Y,Z
+  return X:int(),Y:int(),Z:int()
 end
 -- ******** end color space conversion *********
 
