@@ -26,6 +26,7 @@ function printf(fmt,...)
 end
 
 -- **** begin fixed point formatter ****
+-- Int2Str function is obsolete
 -- fixed point integer to string formatter
 -- Int2Str(value[,x10^dpow:default=0[, unit:string][, fix:number]])
 function Int2Str(val, dpow, ...)
@@ -43,12 +44,10 @@ function Int2Str(val, dpow, ...)
     return  string.format("%s%s%s%s", _sign, _int, _frac, _unit or "")
 end
 
-function str1E3(val)
-    return Int2Str(val, -3)
-end
-
-function str1E3f(val)
-    return Int2Str(val, -3, 0)
+-- max_size = 6 right-aligns 123 to " 1.230"
+function str1E3(val,max_size)
+  s = fmath.new(val,1000):tostr(3)
+  return string.rep(" ",(max_size or 0)-string.len(s)) .. s
 end
 -- **** end fixed point formatter ****
 
@@ -400,11 +399,11 @@ function do_colorspace(use_cal)
 	  i_r, i_g, i_b = balance(i_r, i_g, i_b)
 	end
 
-	-- draw RGB (color) digits on the left side
+	-- draw RGB (color) digits right aligned on the left side
 	local x_left = rawop.get_jpeg_left()+400
-	draw_digits(x_left,y1+font_nl*0,str1E3(i_r),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
-	draw_digits(x_left,y1+font_nl*1,str1E3(i_g),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
-	draw_digits(x_left,y1+font_nl*2,str1E3(i_b),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
+	draw_digits(x_left,y1+font_nl*0,str1E3(i_r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
+	draw_digits(x_left,y1+font_nl*1,str1E3(i_g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
+	draw_digits(x_left,y1+font_nl*2,str1E3(i_b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
 
 	local i_X,i_Y,i_Z
 	i_X,i_Y,i_Z = rgb2xyz(i_r, i_g, i_b)
@@ -412,7 +411,7 @@ function do_colorspace(use_cal)
 	i_x = imath.div(i_X, i_X+i_Y+i_Z)
 	i_y = imath.div(i_Y, i_X+i_Y+i_Z)
 
-	-- draw XY (white) digits on the right side
+	-- draw XY (white) digits left aligned on the right side
 	draw_digits(x1+meter_size_x+100,y1+font_nl*0,str1E3(i_x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 	draw_digits(x1+meter_size_x+100,y1+font_nl*1,str1E3(i_y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 
