@@ -213,9 +213,8 @@ function igama(var)
 end
 
 -- colorspace conversion formula
--- input RGB imath 0-100
--- output XYZ imath 0-100
--- imath 0-100 are integers 0-100000
+-- input RGB fmath 0-100
+-- output XYZ fmath 0-100
 function rgb2xyz(var_R, var_G, var_B)
   -- un-gamma RGB ?
   -- it depends on image sensors
@@ -289,13 +288,11 @@ function do_colorspace()
 
         local i_r, i_g1, i_g2, i_g, i_b
 	i_r  = (r-min_level)
-	i_g1 = (g1-min_level)
-	i_g2 = (g2-min_level)
-	i_g  = (i_g1+i_g2)/2
+	i_g  = (g1+g2)/2-min_level
 	i_b  = (b-min_level)
 	local i_range = max_level-min_level
 
-        -- float percents
+        -- float percentages
         local f_r,f_g,f_b
 	f_r = 100*fmath.new(i_r,i_range) -- i_r / i_range
 	f_g =  60*fmath.new(i_g,i_range) -- i_g / i_range -- fixme: 60% crude experimental white balance in G
@@ -386,7 +383,7 @@ if enable_raw then
 	set_raw(prev_raw_conf)
 end
 
-print("press key for end")
+print("press key")
 wait_click(0)
 
 --sleep(200)
