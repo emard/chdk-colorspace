@@ -1,7 +1,7 @@
 --[[
-@title COLOR SPACE RGB->XYZ (CIE)
+@title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
-#illuminant=s_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 s_D65 SMPTEC_D65} table
+#illuminant=sRGB_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 sRGB_D65 SMPTEC_D65} table
 #remove_gamma=false "Remove gamma"
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
@@ -23,31 +23,13 @@ function printf(fmt,...)
 	print(string.format(fmt,...))
 end
 
--- **** begin fixed point formatter ****
--- Int2Str function is obsolete
--- fixed point integer to string formatter
--- Int2Str(value[,x10^dpow:default=0[, unit:string][, fix:number]])
-function Int2Str(val, dpow, ...)
-    local _dpow, _sign, _val, _unit, _fix = dpow or 0, (val < 0) and "-" or "", tostring(math.abs(val))
-    for i = 1, select('#', ...) do
-        local _arg = select(i, ...)
-        if not _unit and type(_arg) == "string" and #_arg > 0 then _unit = _arg
-        elseif not _fix and type(_arg) == "number" and _arg >= 0 then _fix = _arg
-        end
-    end
-    _val = (_dpow < 0) and string.rep("0", 1 - #_val - _dpow) .. _val or _val .. string.rep("0", _dpow)
-    local _int, _frac = string.match(_val, "^([%d]+)(" .. string.rep("%d", -_dpow) .. ")$")
-    _frac = _fix and string.sub((_frac or "") .. string.rep("0", _fix), 1, _fix) or _frac
-    _frac = (_frac and type(_frac) == "string" and #_frac > 0) and "." .. _frac or ""
-    return  string.format("%s%s%s%s", _sign, _int, _frac, _unit or "")
-end
-
--- max_size = 6 right-aligns 123 to " 1.230"
+-- **** begin float formatter ****
+-- max_size = 6 right-aligns 1.23 to " 1.230"
 function str1E3(val,max_size)
-  s = fmath.new(val,1000):tostr(3)
-  return string.rep(" ",(max_size or 0)-string.len(s)) .. s
+  s = val:tostr(3)
+  return string.rep(" ",(max_size or 0)-#s) .. s
 end
--- **** end fixed point formatter ****
+-- **** end float formatter ****
 
 
 -- **** begin 7-segment display ****
@@ -175,7 +157,7 @@ RGB2XYZ1E7 =
     {2880402,  7118741,      857},
     {      0,        0,  8252100},
   },
-  ["s_D65"] = -- sRGB, D65
+  ["sRGB_D65"] = -- sRGB, D65 https://en.wikipedia.org/wiki/SRGB
   {
     {4124564,  3575761,  1804375},
     {2126729,  7151522,   721750},
@@ -191,22 +173,25 @@ RGB2XYZ1E7 =
 
 
 -- inverse gamma
--- in JPEGs RGB values 0-255 have
--- already applied gamma function which
--- this function removes and returns linear RGB
+-- if image sensor applied gamma function then
+-- this function removes gamma and returns linear RGB
 -- input  gamma RGB (float 0-100) (0-255 must be scaled to 0-100)
 -- output linear RGB (float 0-100)
 function igama(var)
-  local gama_thresh =  fmath.new(4045,100000) --  0.04045 * 100 * 1000
-  local gama_add    =  fmath.new(5500,100000) --  0.05500 * 100 * 1000
-  local gama_pow    =  fmath.new(2400,  1000) --  2.400 * 1000
-  local gama_mul    =  fmath.new(6458,  1000) --  6.458 * 1000 = 100^(1/2.4) / (1.055*100) * 1000
-  local gama_div    =  fmath.new(12920,10000) -- 12.920 * 1000
+  -- https://en.wikipedia.org/wiki/SRGB
+  -- FIXME currently here is linear to non-linear formula
+  -- we need non-linear to linear formula (inverse)
+  -- see for Rec.709: https://en.wikipedia.org/wiki/Rec._709
+  local gama_thresh =  fmath.new(4045,100000) --  0.04045
+  local gama_add    =  fmath.new(5500,100000) --  0.05500
+  local gama_pow    =  fmath.new(2400,  1000) --  2.400
+  local gama_div1   =  fmath.new(1055,  1000) --  1.055
+  local gama_div2   =  fmath.new(12920,10000) -- 12.920
 
   if var > gama_thresh then
-    var = fmath.pow((var + gama_add) * gama_mul, gama_pow)
+    var = ((var + gama_add) / gama_div1) ^ gama_pow
   else
-    var = var / gama_div
+    var = var / gama_div2
   end
 
   return var
@@ -255,99 +240,89 @@ end
 
 -- ******** begin image processing *********
 function do_colorspace()
- 	min_level = rawop.get_black_level() + 1
- 	max_level = rawop.get_white_level() - 1
+  min_level = rawop.get_black_level() + 1
+  max_level = rawop.get_white_level() - 1
 
-        -- centered 500 px square (from parameters)
-	--local meter_size_x = 500
-	--local meter_size_y = 400
-	
-	local font_h = 200         -- digit height Y
-	local font_w = font_h/2    -- digit width X
-	local font_p = font_h*3/4  -- pitch (column width) X
-	local font_t = font_h/10   -- segment line thickness
-	local font_nl = font_h*3/2  -- line (row width) Y
+  -- centered 500 px square (from parameters)
+  --local meter_size_x = 500
+  --local meter_size_y = 400
 
-	local x1 = rawop.get_raw_width()/2 - meter_size_x/2
-	local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+  local font_h = 200         -- digit height Y
+  local font_w = font_h/2    -- digit width X
+  local font_p = font_h*3/4  -- pitch (column width) X
+  local font_t = font_h/10   -- segment line thickness
+  local font_nl = font_h*3/2  -- line (row width) Y
 
-	-- local m = rawop.meter(x1,y1,meter_size_x,meter_size_y,1,1)
-	local r,g1,b,g2 = rawop.meter_rgbg(x1,y1,meter_size_x/2,meter_size_y/2,2,2)
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
 
-	-- draw white rectangle around metered area
-	rawop.rect_rgbg(x1-2,y1-2,meter_size_x+4,meter_size_y+4,2,max_level,max_level,max_level)
+  -- local m = rawop.meter(x1,y1,meter_size_x,meter_size_y,1,1)
+  local r,g1,b,g2 = rawop.meter_rgbg(x1,y1,meter_size_x/2,meter_size_y/2,2,2)
 
-	-- draw small coloured boxes at 4 corners of metered area
-	rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
-	rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
-	rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
-	rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
-	
-	-- below the metered area, reproduce the average color bar
-	rawop.fill_rect_rgbg(x1,y1+meter_size_y+100,meter_size_x,200,r,g1,b,g2)
+  -- draw white rectangle around metered area
+  rawop.rect_rgbg(x1-2,y1-2,meter_size_x+4,meter_size_y+4,2,max_level,max_level,max_level)
 
-        local i_r, i_g1, i_g2, i_g, i_b
-	i_r  = (r-min_level)
-	i_g  = (g1+g2)/2-min_level
-	i_b  = (b-min_level)
-	local i_range = max_level-min_level
+  -- draw small coloured boxes at 4 corners of metered area
+  rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
+  rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
+  rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
+  rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
 
-        -- float percentages
-        local f_r,f_g,f_b
-	f_r = 100*fmath.new(i_r,i_range) -- i_r / i_range
-	f_g =  60*fmath.new(i_g,i_range) -- i_g / i_range -- fixme: 60% crude experimental white balance in G
-	f_b = 100*fmath.new(i_b,i_range) -- i_b / i_range
+  -- below the metered area, reproduce the average color bar
+  rawop.fill_rect_rgbg(x1,y1+meter_size_y+100,meter_size_x,200,r,g1,b,g2)
 
-        -- back to ints for display
-	i_r = (1000*f_r):int()
-	i_g = (1000*f_g):int()
-	i_b = (1000*f_b):int()
+  local i_r, i_g1, i_g2, i_g, i_b
+  i_r  = (r-min_level)
+  i_g  = (g1+g2)/2-min_level
+  i_b  = (b-min_level)
+  local i_range = max_level-min_level
 
-	local f_X,f_Y,f_Z
-	f_X,f_Y,f_Z = rgb2xyz(f_r, f_g, f_b)
+  -- float percentages
+  local r,g,b
+  r = 100*fmath.new(i_r,i_range) -- i_r / i_range
+  g =  60*fmath.new(i_g,i_range) -- i_g / i_range -- fixme: 60% crude experimental white balance in G
+  b = 100*fmath.new(i_b,i_range) -- i_b / i_range
 
-        -- from XYZ calculate xy
-	local f_x,f_y
-	f_x = f_X / (f_X+f_Y+f_Z)
-	f_y = f_Y / (f_X+f_Y+f_Z)
+  local CIE_X,CIE_Y,CIE_Z
+  CIE_X,CIE_Y,CIE_Z = rgb2xyz(r,g,b)
 
-        -- int for display
-	local i_x,i_y
-	i_x = (1000*f_x):int()
-	i_y = (1000*f_y):int()
+  -- from XYZ calculate xy
+  local CIE_x,CIE_y
+  CIE_x = CIE_X / (CIE_X+CIE_Y+CIE_Z)
+  CIE_y = CIE_Y / (CIE_X+CIE_Y+CIE_Z)
 
-	-- draw RGB (color) digits right aligned on the left side
-	local x_left = rawop.get_jpeg_left()+400
-	draw_digits(x_left,y1+font_nl*0,str1E3(i_r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
-	draw_digits(x_left,y1+font_nl*1,str1E3(i_g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
-	draw_digits(x_left,y1+font_nl*2,str1E3(i_b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
+  -- draw RGB (color) digits right aligned on the left side
+  local x_left = rawop.get_jpeg_left()+400
+  draw_digits(x_left,y1+font_nl*0,str1E3(r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
+  draw_digits(x_left,y1+font_nl*1,str1E3(g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
+  draw_digits(x_left,y1+font_nl*2,str1E3(b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
 
-	-- draw xy (white) digits left aligned on the right side
-	draw_digits(x1+meter_size_x+100,y1+font_nl*0,str1E3(i_x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-	draw_digits(x1+meter_size_x+100,y1+font_nl*1,str1E3(i_y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-	-- draw_digits(x1+meter_size_x+100,y1+font_nl*2,str1E3(i_z),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  -- draw xy (white) digits left aligned on the right side
+  draw_digits(x1+meter_size_x+100,y1+font_nl*0,str1E3(CIE_x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x1+meter_size_x+100,y1+font_nl*1,str1E3(CIE_y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  -- draw_digits(x1+meter_size_x+100,y1+font_nl*2,str1E3(f_z),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 
-        set_console_layout(0,0,40,12)
-	--printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
-	printf("R=%s G=%s B=%s",str1E3(i_r,6),str1E3(i_g,6),str1E3(i_b,6))
-	printf("x=%s y=%s",str1E3(i_x,6),str1E3(i_y,6))
-	--logfile=io.open("A/colorspc.log","wb")
-	--logfile:write(string.format("illuminant = >>%s<<\n", illuminant[illuminant.index]))
-	--logfile:write(string.format("meter r=%d g1=%d g2=%d b=%d\n",r,g1,g2,b))
-	--logfile:write(string.format("meter r=%s g1=%s g2=%s b=%s\n",str1E3(i_r),str1E3(i_g1),str1E3(i_g2),str1E3(i_b)))
-	--logfile.close()
+  set_console_layout(0,0,40,12)
+  --printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
+  printf("R=%s G=%s B=%s",str1E3(r,6),str1E3(g,6),str1E3(b,6))
+  printf("x=%s y=%s (CIE)",str1E3(CIE_x,6),str1E3(CIE_y,6))
+  --logfile=io.open("A/colorspc.log","wb")
+  --logfile:write(string.format("illuminant = >>%s<<\n", illuminant[illuminant.index]))
+  --logfile:write(string.format("meter r=%d g1=%d g2=%d b=%d\n",r,g1,g2,b))
+  --logfile:write(string.format("meter r=%s g1=%s g2=%s b=%s\n",str1E3(i_r),str1E3(i_g1),str1E3(i_g2),str1E3(i_b)))
+  --logfile.close()
 end -- do_colorspace
 -- ******** begin image processing *********
 
 -- ******** begin shooting logic *********
 -- for ptp file exec
 if not shots then 
-	shots = 1
+  shots = 1
 end
 
 prev_raw_conf=get_raw()
 if enable_raw then
-	set_raw(true)
+  set_raw(true)
 end
 
 -- initialized on in raw hook
@@ -361,29 +336,29 @@ press('shoot_half')
 repeat sleep(10) until get_shooting()
 
 for i=1,shots do
-        press('shoot_half')
-        repeat sleep(10) until get_shooting()
-	--click('shoot_full_only')
-	press('shoot_full_only')
+  press('shoot_half')
+  repeat sleep(10) until get_shooting()
+  --click('shoot_full_only')
+  press('shoot_full_only')
 
-	-- wait for the image to be captured
-	hook_raw.wait_ready()
+  -- wait for the image to be captured
+  hook_raw.wait_ready()
 
-	local count, ms = set_yield(-1,-1)
-	do_colorspace()
-	set_yield(count, ms)
+  local count, ms = set_yield(-1,-1)
+  do_colorspace()
+  set_yield(count, ms)
 
-	hook_raw.continue()
-	release('shoot_full_only')
-	release('shoot_half')
-	sleep(300)
+  hook_raw.continue()
+  release('shoot_full_only')
+  release('shoot_half')
+  sleep(300)
 end
 -- release('shoot_full')
 if enable_raw then
-	set_raw(prev_raw_conf)
+  set_raw(prev_raw_conf)
 end
 
-print("press key")
+-- print("press key")
 wait_click(0)
 
 --sleep(200)
