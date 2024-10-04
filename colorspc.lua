@@ -198,20 +198,22 @@ RGB2XYZ1E7 =
 -- output linear RGB (0-100)
 -- all values in imath.scale
 -- imath 0-100 are integers 0-100000
-function igama(var)
-  local gama_thresh =  4045 --  0.04045 * 100 * 1000
-  local gama_add    =  5500 --  0.05500 * 100 * 1000
-  local gama_pow    =  2400 --  2.400 * 1000
-  local gama_mul    =    65 --  6.458/100 * 1000 = 100^(1/2.4) / (1.055*100) * 1000
-  local gama_div    = 12920 -- 12.920 * 1000
+function igama(ivar)
+  local gama_thresh =  fmath.new(4045,100000) --  0.04045 * 100 * 1000
+  local gama_add    =  fmath.new(5500,100000) --  0.05500 * 100 * 1000
+  local gama_pow    =  fmath.new(2400,  1000) --  2.400 * 1000
+  local gama_mul    =  fmath.new(6458,  1000) --  6.458/100 * 1000 = 100^(1/2.4) / (1.055*100) * 1000
+  local gama_div    =  fmath.new(12920,10000) -- 12.920 * 1000
 
+  var = fmath.new(ivar,1000)
   if var > gama_thresh then
-    var = imath.pow( imath.mul(var + gama_add, gama_mul), gama_pow)
+    var = fmath.pow((var + gama_add) * gama_mul, gama_pow)
   else
-    var = imath.div(var, gama_div)
+    var = fmath.div(var, gama_div)
   end
+  var = var * 1000
 
-  return var
+  return var:int()
 end
 
 -- colorspace conversion formula
