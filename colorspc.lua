@@ -314,18 +314,21 @@ function do_colorspace()
 	i_x = imath.div(i_X, i_X+i_Y+i_Z)
 	i_y = imath.div(i_Y, i_X+i_Y+i_Z)
 
-	-- draw RGB (color) digits on the left side
+	-- draw RGB (color) digits right aligned on the left side
 	local x_left = rawop.get_jpeg_left()+400
 	draw_digits(x_left,y1+font_nl*0,str1E3(i_r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
 	draw_digits(x_left,y1+font_nl*1,str1E3(i_g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
 	draw_digits(x_left,y1+font_nl*2,str1E3(i_b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
 
-	-- draw xy (white) digits on the right side
+	-- draw xy (white) digits left aligned on the right side
 	draw_digits(x1+meter_size_x+100,y1+font_nl*0,str1E3(i_x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 	draw_digits(x1+meter_size_x+100,y1+font_nl*1,str1E3(i_y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 	-- draw_digits(x1+meter_size_x+100,y1+font_nl*2,str1E3(i_z),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 
-	printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
+        set_console_layout(0,0,40,12)
+	--printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
+	printf("R=%s G=%s B=%s",str1E3(i_r,6),str1E3(i_g,6),str1E3(i_b,6))
+	printf("x=%s y=%s",str1E3(i_x,6),str1E3(i_y,6))
 	--logfile=io.open("A/colorspc.log","wb")
 	--logfile:write(string.format("illuminant = >>%s<<\n", illuminant[illuminant.index]))
 	--logfile:write(string.format("meter r=%d g1=%d g2=%d b=%d\n",r,g1,g2,b))
@@ -378,5 +381,8 @@ if enable_raw then
 	set_raw(prev_raw_conf)
 end
 
-sleep(200)
+print("press key for end")
+wait_click(0)
+
+--sleep(200)
 -- ******** end shooting logic *********
