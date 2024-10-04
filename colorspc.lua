@@ -194,25 +194,22 @@ RGB2XYZ1E7 =
 -- in JPEGs RGB values 0-255 have
 -- already applied gamma function which
 -- this function removes and returns linear RGB
--- input  gamma RGB (0-100) (0-255 must be scaled to 0-100)
--- output linear RGB (0-100)
--- all values in imath.scale
--- imath 0-100 are integers 0-100000
-function igama(ivar)
+-- input  gamma RGB (float 0-100) (0-255 must be scaled to 0-100)
+-- output linear RGB (float 0-100)
+function igama(var)
   local gama_thresh =  fmath.new(4045,100000) --  0.04045 * 100 * 1000
   local gama_add    =  fmath.new(5500,100000) --  0.05500 * 100 * 1000
   local gama_pow    =  fmath.new(2400,  1000) --  2.400 * 1000
-  local gama_mul    =  fmath.new(6458,  1000) --  6.458/100 * 1000 = 100^(1/2.4) / (1.055*100) * 1000
+  local gama_mul    =  fmath.new(6458,  1000) --  6.458 * 1000 = 100^(1/2.4) / (1.055*100) * 1000
   local gama_div    =  fmath.new(12920,10000) -- 12.920 * 1000
 
-  var = fmath.new(ivar,1000)
   if var > gama_thresh then
     var = fmath.pow((var + gama_add) * gama_mul, gama_pow)
   else
-    var = fmath.div(var, gama_div)
+    var = var / gama_div
   end
 
-  return var * 1000
+  return var
 end
 
 -- colorspace conversion formula
@@ -252,7 +249,7 @@ function rgb2xyz(var_R, var_G, var_B)
   local Y = var_R * yr + var_G * yg + var_B * yb
   local Z = var_R * zr + var_G * zg + var_B * zb
 
-  return X:int(),Y:int(),Z:int()
+  return X,Y,Z
 end
 -- ******** end color space conversion *********
 
@@ -290,30 +287,37 @@ function do_colorspace()
 	-- below the metered area, reproduce the average color bar
 	rawop.fill_rect_rgbg(x1,y1+meter_size_y+100,meter_size_x,200,r,g1,b,g2)
 
-        -- fixed point arithmetic
-        -- imath.mul(a,b), imath.div(a,b)
-        -- imath.sqrt(a),
-        -- imath.sinr(a), imath.cosr(a) -- radians sine
-        -- for more examples see imath.lua
-        local i_scale, i_r, i_g1, i_g2, i_g, i_b
-	i_scale = imath.scale
-	i_r  = (r-min_level)  * i_scale
-	i_g1 = (g1-min_level) * i_scale
-	i_g2 = (g2-min_level) * i_scale
+        local i_r, i_g1, i_g2, i_g, i_b
+	i_r  = (r-min_level)
+	i_g1 = (g1-min_level)
+	i_g2 = (g2-min_level)
 	i_g  = (i_g1+i_g2)/2
-	i_b  = (b-min_level)  * i_scale
+	i_b  = (b-min_level)
+	local i_range = max_level-min_level
 
-	local i_range = (max_level-min_level) * (i_scale / 100)
+        -- float percents
+        local f_r,f_g,f_b
+	f_r = 100*fmath.new(i_r,i_range) -- i_r / i_range
+	f_g =  60*fmath.new(i_g,i_range) -- i_g / i_range -- fixme: 60% crude experimental white balance in G
+	f_b = 100*fmath.new(i_b,i_range) -- i_b / i_range
 
-	i_r = imath.div(i_r, i_range)
-	i_g = imath.mul(imath.div(i_g, i_range), 600) -- fixme: crude experimental white balance in G
-	i_b = imath.div(i_b, i_range)
-	
-	local i_X,i_Y,i_Z
-	i_X,i_Y,i_Z = rgb2xyz(i_r, i_g, i_b)
+        -- back to ints for display
+	i_r = (1000*f_r):int()
+	i_g = (1000*f_g):int()
+	i_b = (1000*f_b):int()
+
+	local f_X,f_Y,f_Z
+	f_X,f_Y,f_Z = rgb2xyz(f_r, f_g, f_b)
+
+        -- from XYZ calculate xy
+	local f_x,f_y
+	f_x = f_X / (f_X+f_Y+f_Z)
+	f_y = f_Y / (f_X+f_Y+f_Z)
+
+        -- int for display
 	local i_x,i_y
-	i_x = imath.div(i_X, i_X+i_Y+i_Z)
-	i_y = imath.div(i_Y, i_X+i_Y+i_Z)
+	i_x = (1000*f_x):int()
+	i_y = (1000*f_y):int()
 
 	-- draw RGB (color) digits right aligned on the left side
 	local x_left = rawop.get_jpeg_left()+400
