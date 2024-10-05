@@ -2,7 +2,7 @@
 @title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
 #illuminant=sRGB_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 sRGB_D65 SMPTEC_D65} table
-#remove_gamma=false "Remove gamma"
+#inverse_gamma=None "Inverse gamma" {None sRGB REC709} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #enable_raw=false "Enable raw"
@@ -15,6 +15,8 @@
 ]]
 
 -- shots=1 -- always 1 shot
+
+-- white is CIE x=0.333 y=0.333
 
 require'hookutil'
 require'rawoplib'
@@ -109,7 +111,7 @@ function draw_digits(x,y,d,w,h,p,t,r,g,b) -- 7-segment display
 end -- 7-segment display
 -- **** end 7-segment display ****
 
--- **** color reference tables ***
+-- **** begin color reference tables ***
 -- gardner is standard for shades of yellow
 -- https://www.shimadzu.com/an/sites/shimadzu.com.an/files/pim/pim_document_file/applications/application_note/13384/sia116002.pdf
 GARDNER2XY1E4 =
@@ -133,6 +135,16 @@ GARDNER2XY1E4 =
   {6290,3701}, -- 17
   {6477,3521}, -- 18
 }
+-- **** end color reference tables ***
+
+-- **** begin inverse gamma coefficients ***
+IGAMMA1E5 =
+{ --            div_lin  thresh   add     div     pow
+  ["None"]   = { 100000, 100000,    0, 100000, 100000  },
+  ["sRGB"]   = {1292000,   4045, 5500, 105500, 240000  },
+  ["REC709"] = { 450000,   8100, 9900, 109900, 222222  },
+}
+-- **** end inverse gamma coefficiens ***
 
 
 -- ******** begin color space conversion *********
@@ -199,57 +211,49 @@ RGB2XYZ1E7 =
 
 
 -- inverse gamma
--- if image sensor applied gamma function then
+-- if image sensor applies gamma function then
 -- this function removes gamma and returns linear RGB
--- input  gamma RGB (float 0-100) (0-255 must be scaled to 0-100)
--- output linear RGB (float 0-100)
-function igama(var)
+-- input  gamma RGB (float 0-1) (0-255 should be scaled to 0-1)
+-- output linear RGB (float 0-1)
+function invgamma(var)
   -- https://en.wikipedia.org/wiki/SRGB
-  -- FIXME currently here is linear to non-linear formula
-  -- we need non-linear to linear formula (inverse)
+  -- is this non-linear to linear formula (inverse)?
   -- see for Rec.709: https://en.wikipedia.org/wiki/Rec._709
-  local gama_thresh =  fmath.new(4045,100000) --  0.04045
-  local gama_add    =  fmath.new(5500,100000) --  0.05500
-  local gama_pow    =  fmath.new(2400,  1000) --  2.400
-  local gama_div1   =  fmath.new(1055,  1000) --  1.055
-  local gama_div2   =  fmath.new(12920,10000) -- 12.920
+  local inverse_gamma_name = inverse_gamma[inverse_gamma.index]
+  local gama_div1   =  fmath.new(IGAMMA1E5[inverse_gamma_name][1],100000) -- 12.92
+  local gama_thresh =  fmath.new(IGAMMA1E5[inverse_gamma_name][2],100000) --  0.04045
+  local gama_add    =  fmath.new(IGAMMA1E5[inverse_gamma_name][3],100000) --  0.05500
+  local gama_div    =  fmath.new(IGAMMA1E5[inverse_gamma_name][4],100000) --  1.055
+  local gama_pow    =  fmath.new(IGAMMA1E5[inverse_gamma_name][5],100000) --  2.400
 
   if var > gama_thresh then
-    var = ((var + gama_add) / gama_div1) ^ gama_pow
+    var = ((var + gama_add) / gama_div) ^ gama_pow
   else
-    var = var / gama_div2
+    var = var / gama_div1
   end
 
   return var
 end
 
 -- colorspace conversion formula
--- input RGB fmath 0-100
--- output XYZ fmath 0-100
+-- input RGB fmath 0-1
+-- output XYZ fmath 0-1
 function rgb2xyz(var_R, var_G, var_B)
-  -- un-gamma RGB ?
-  -- it depends on image sensors
-  if remove_gamma then
-    var_R = igama(var_R)
-    var_G = igama(var_G)
-    var_B = igama(var_B)
-  end
-
   -- conversion matrix
   -- see http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
   -- depends on standard viewpoint and light source
   -- Observer = 2°, Illuminant = D65
   -- local space_illum = "s_D65"
   local space_illum = illuminant[illuminant.index]
-  local xr = fmath.new(RGB2XYZ1E7[space_illum][1][1], 10000)
-  local xg = fmath.new(RGB2XYZ1E7[space_illum][1][2], 10000)
-  local xb = fmath.new(RGB2XYZ1E7[space_illum][1][3], 10000)
-  local yr = fmath.new(RGB2XYZ1E7[space_illum][2][1], 10000)
-  local yg = fmath.new(RGB2XYZ1E7[space_illum][2][2], 10000)
-  local yb = fmath.new(RGB2XYZ1E7[space_illum][2][3], 10000)
-  local zr = fmath.new(RGB2XYZ1E7[space_illum][3][1], 10000)
-  local zg = fmath.new(RGB2XYZ1E7[space_illum][3][2], 10000)
-  local zb = fmath.new(RGB2XYZ1E7[space_illum][3][3], 10000)
+  local xr = fmath.new(RGB2XYZ1E7[space_illum][1][1], 10000000)
+  local xg = fmath.new(RGB2XYZ1E7[space_illum][1][2], 10000000)
+  local xb = fmath.new(RGB2XYZ1E7[space_illum][1][3], 10000000)
+  local yr = fmath.new(RGB2XYZ1E7[space_illum][2][1], 10000000)
+  local yg = fmath.new(RGB2XYZ1E7[space_illum][2][2], 10000000)
+  local yb = fmath.new(RGB2XYZ1E7[space_illum][2][3], 10000000)
+  local zr = fmath.new(RGB2XYZ1E7[space_illum][3][1], 10000000)
+  local zg = fmath.new(RGB2XYZ1E7[space_illum][3][2], 10000000)
+  local zb = fmath.new(RGB2XYZ1E7[space_illum][3][3], 10000000)
 
   -- RGB to XYZ conversion (matrix dot-product)
   -- [X]   [xr xg xb]   [R]
@@ -303,11 +307,11 @@ function do_colorspace()
   i_b  = (b-min_level)
   local i_range = max_level-min_level
 
-  -- float percentages
+  -- float rgb range 0-1
   local r,g,b
-  r = 100*fmath.new(i_r,i_range) -- i_r / i_range
-  g =  60*fmath.new(i_g,i_range) -- i_g / i_range -- fixme: 60% crude experimental white balance in G
-  b = 100*fmath.new(i_b,i_range) -- i_b / i_range
+  r = invgamma(fmath.new(i_r,i_range)) -- i_r / i_range
+  g = invgamma(fmath.new(i_g*6,i_range*10)) -- i_g / i_range -- FIXME: 60% crude experimental white balance in G
+  b = invgamma(fmath.new(i_b,i_range)) -- i_b / i_range
 
   local CIE_X,CIE_Y,CIE_Z
   CIE_X,CIE_Y,CIE_Z = rgb2xyz(r,g,b)
