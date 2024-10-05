@@ -269,19 +269,22 @@ end
 
 
 -- ******** begin image processing *********
-function do_colorspace()
-  min_level = rawop.get_black_level() + 1
-  max_level = rawop.get_white_level() - 1
+-- colorimetry calculation
+-- temporary display on screen
+-- markings on saved picture
+function calculate_colorspace()
+  local font_h  = 200        -- digit height Y
+  local font_w  = font_h/2   -- digit width X
+  local font_p  = font_h*3/4 -- pitch (column width) X
+  local font_t  = font_h/10  -- segment line thickness
+  local font_nl = font_h*3/2 -- line (row width) Y
+
+  min_level = rawop.get_black_level() --  128
+  max_level = rawop.get_white_level() -- 4095
 
   -- centered 500 px square (from parameters)
   --local meter_size_x = 500
   --local meter_size_y = 400
-
-  local font_h = 200         -- digit height Y
-  local font_w = font_h/2    -- digit width X
-  local font_p = font_h*3/4  -- pitch (column width) X
-  local font_t = font_h/10   -- segment line thickness
-  local font_nl = font_h*3/2  -- line (row width) Y
 
   local x1 = rawop.get_raw_width()/2 - meter_size_x/2
   local y1 = rawop.get_raw_height()/2 - meter_size_y/2
@@ -335,6 +338,7 @@ function do_colorspace()
   set_console_layout(0,0,40,12)
   --printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
   --printf("gardner %d: x=0.%d y=0.%d", gardner, GARDNER2XY1E4[gardner][1], GARDNER2XY1E4[gardner][2] )
+  --printf("black=%d white=%d", min_level, max_level)
   printf("R=%s G=%s B=%s",str1E3(r,6),str1E3(g,6),str1E3(b,6))
   printf("x=%s y=%s (CIE)",str1E3(CIE_x,6),str1E3(CIE_y,6))
   --logfile=io.open("A/colorspc.log","wb")
@@ -344,6 +348,41 @@ function do_colorspace()
   --logfile.close()
 end -- do_colorspace
 -- ******** begin image processing *********
+
+-- **** begin calibration ****
+-- first set camera to manual white balance
+-- prepare white surface (paper)
+-- SET->White Balance->SET-> point camera to white -> DISP
+-- after white balance, prepare reference color with known
+-- CIE xy value and do this calibration
+function calibrate()
+-- write_cal_file()
+end
+-- **** end calibration ****
+
+-- **** begin colorimetry, normal operation ****
+function colorimetry()
+-- read_cal_file()
+for i=1,shots do
+  press('shoot_half')
+  repeat sleep(10) until get_shooting()
+  --click('shoot_full_only')
+  press('shoot_full_only')
+
+  -- wait for the image to be captured
+  hook_raw.wait_ready()
+
+  local count, ms = set_yield(-1,-1)
+  calculate_colorspace()
+  set_yield(count, ms)
+
+  hook_raw.continue()
+  release('shoot_full_only')
+  release('shoot_half')
+  sleep(300)
+end
+end
+-- **** end colorimetry ****
 
 -- ******** begin shooting logic *********
 -- for ptp file exec
@@ -366,24 +405,8 @@ hook_raw.set(10000)
 press('shoot_half')
 repeat sleep(10) until get_shooting()
 
-for i=1,shots do
-  press('shoot_half')
-  repeat sleep(10) until get_shooting()
-  --click('shoot_full_only')
-  press('shoot_full_only')
+colorimetry()
 
-  -- wait for the image to be captured
-  hook_raw.wait_ready()
-
-  local count, ms = set_yield(-1,-1)
-  do_colorspace()
-  set_yield(count, ms)
-
-  hook_raw.continue()
-  release('shoot_full_only')
-  release('shoot_half')
-  sleep(300)
-end
 -- release('shoot_full')
 if enable_raw then
   set_raw(prev_raw_conf)
