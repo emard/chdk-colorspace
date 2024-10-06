@@ -4,3 +4,6 @@
 [ ] input value table choice more chars than 6
 [ ] camera raw sensor readings ignore camera manual
     white balance. Make internal white balance
+[ ] raw sensor probably have some gamma, experimental
+    exposure: 1/x   1/2x  1/4x
+    readings: 0.150 0.110 0.077
