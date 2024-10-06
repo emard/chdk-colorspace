@@ -311,13 +311,13 @@ function calculate_colorspace(use_cal)
   i_b  = (b-min_level)
   local i_range = max_level-min_level
 
-  -- TODO apply calibration
-
   -- float rgb range 0-1
   local r,g,b
   r = invgamma(fmath.new(i_r,i_range)) -- i_r / i_range
   g = invgamma(fmath.new(i_g*6,i_range*10)) -- i_g / i_range -- FIXME: 60% crude experimental white balance in G
   b = invgamma(fmath.new(i_b,i_range)) -- i_b / i_range
+
+  -- TODO apply calibration
 
   local CIE_X,CIE_Y,CIE_Z
   CIE_X,CIE_Y,CIE_Z = rgb2xyz(r,g,b)
@@ -423,40 +423,44 @@ function calibration()
 
   cal_rgb={{},{},{}} -- we will get here bracketed values
   for i=1,3 do -- 3 shots for bracketing
-        shoot() -- fix this more elegant way
-        -- without shoot() tv value is set for the first time
-        -- but subsequent shots with hooks will ignore it
-        -- must be a better way to do bracketing with raw hooks
-        -- tv96 -- exposure time, logarithmic
-        -- when adding 48 then exposition time 2 times shorter (faster)
-        -- and picture is dimmer
-        set_tv96_direct(afl_tv+((i-1)*48))
-        set_sv96(afl_sv)
-        set_av96(afl_av)
-        
-        -- sleep(200)
-        -- set hook in raw for drawing
-        hook_raw.set(10000)
-        press('shoot_half')
-        repeat sleep(10) until get_shooting()
-        -- sleep(200)
-        press('shoot_full_only')
+    shoot() -- fix this more elegant way
+    -- with shoot() for 3 loops we get 6 pics.
+    -- first pic without 7-seg numbers and second with 7-seg numbers.
+    -- all pics can be erased later.
+    -- For calibration this is usually not a big drawback.
+    -- without shoot() tv value is set for the first time
+    -- but subsequent shots with hooks will ignore it
+    -- must be a better way to do bracketing with raw hooks
+    -- tv96 -- exposure time, logarithmic
+    -- when adding 48 then exposition time 2 times shorter (faster)
+    -- and picture is dimmer
+    set_tv96_direct(afl_tv+((i-1)*48))
+    set_sv96(afl_sv)
+    set_av96(afl_av)
 
-	-- wait for the image to be captured
-	hook_raw.wait_ready()
+    -- sleep(200)
+    -- set hook in raw for drawing
+    hook_raw.set(10000)
+    press('shoot_half')
+    repeat sleep(10) until get_shooting()
+    -- sleep(200)
+    press('shoot_full_only')
 
-	local count, ms = set_yield(-1,-1)
-	-- get sensor values without calibration thus (false) argument
-	r,g,b = calculate_colorspace(false)
-        cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = (r*100000):int(),(g*100000):int(),(b*100000):int()
-	set_yield(count, ms)
+    -- wait for the image to be captured
+    hook_raw.wait_ready()
 
-	hook_raw.continue()
-	release('shoot_full_only')
-	release('shoot_half')
-	hook_raw.set(0)
-	-- set_aflock(0)
-	-- sleep(1900)
+    local count, ms = set_yield(-1,-1)
+    -- get sensor values without calibration thus (false) argument
+    r,g,b = calculate_colorspace(false)
+    cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = (r*100000):int(),(g*100000):int(),(b*100000):int()
+    set_yield(count, ms)
+
+    hook_raw.continue()
+    release('shoot_full_only')
+    release('shoot_half')
+    hook_raw.set(0)
+    -- set_aflock(0)
+    -- sleep(1900)
   end -- for shots
 
   -- restore values
