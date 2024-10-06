@@ -272,6 +272,7 @@ end
 -- colorimetry calculation
 -- temporary display on screen
 -- markings on saved picture
+-- TODO if use_cal==true then apply calibration using cal_rgb
 function calculate_colorspace(use_cal)
   local font_h  = 200        -- digit height Y
   local font_w  = font_h/2   -- digit width X
@@ -309,6 +310,8 @@ function calculate_colorspace(use_cal)
   i_g  = (g1+g2)/2-min_level
   i_b  = (b-min_level)
   local i_range = max_level-min_level
+
+  -- TODO apply calibration
 
   -- float rgb range 0-1
   local r,g,b
@@ -361,20 +364,13 @@ end -- do_colorspace
 -- those numbers are raw sensor values obtained
 -- by taking 3 shots of various exposition
 -- of referent color surface
+-- float's 0-1 are scaled as int's 0-100000
 cal_rgb =
 {
   { 99999, 99999, 99999 }, -- RGB exposition 1/x
   { 49999, 49999, 49999 }, -- RGB exposition 1/2x
   {     0,     0,     0 }, -- RGB exposition 1/4x
 }
-
-function calibration()
-  if write_cal_file() then
-    print("colorcal.txt written")
-  else
-    print("colorcal.txt write error")
-  end
-end
 
 -- file COLORCAL.TXT contains linearized cal_rgb array
 -- example:
@@ -414,6 +410,108 @@ function read_cal_file()
   end
   return false
 end
+
+function calibration()
+  press('shoot_half')
+  repeat sleep(10) until get_shooting()
+  afl_av=get_av96()
+  afl_sv=get_sv96()
+  afl_tv=get_tv96()
+  release('shoot_half')
+  -- set_aflock(1) -- focus lock - no more change of the focus
+
+  if false then
+  cal_rgb={{},{},{}} -- we will get here bracketed values
+  for i=1,3 do -- 3 shots for bracketing
+        shoot() -- fix this more elegant way
+        -- without shoot() tv value is set for the first time
+        -- but subsequent shots with hooks will ignore it
+        -- must be a better way to do bracketing with raw hooks
+        -- tv96 -- exposure time, logarithmic
+        -- when adding 48 then exposition time 2 times shorter (faster)
+        -- and picture is dimmer
+        set_tv96_direct(afl_tv+((i-1)*48))
+        set_sv96(afl_sv)
+        set_av96(afl_av)
+        
+        -- sleep(200)
+        -- set hook in raw for drawing
+        hook_raw.set(10000)
+        press('shoot_half')
+        repeat sleep(10) until get_shooting()
+        -- sleep(200)
+        press('shoot_full_only')
+
+	-- wait for the image to be captured
+	hook_raw.wait_ready()
+
+	local count, ms = set_yield(-1,-1)
+	-- get sensor values without calibration thus (false) argument
+        cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = calculate_colorspace(false)
+	set_yield(count, ms)
+
+	hook_raw.continue()
+	release('shoot_full_only')
+	release('shoot_half')
+	hook_raw.set(0)
+	-- set_aflock(0)
+	-- sleep(1900)
+  end -- for shots
+  end -- debug disable above code
+
+  -- restore values
+  set_tv96(afl_tv)
+  set_sv96(afl_sv)
+  set_av96(afl_av)
+  set_aflock(0)
+
+  -- now we have all the sensor values ready in cal_rgb[1..3][1..3]
+  -- cal_rgb[number_of_shots][1-red, 2-green, 3-blue]
+  -- we can interpolate them for a white balance
+  -- R,G,B = apply_cal(cal_rgb[1][1], cal_rgb[1][2], cal_rgb[1][3])
+  -- write calib data to file
+  if write_cal_file() then
+    print("colorcal.txt written")
+  else
+    print("colorcal.txt write error")
+  end
+end
+
+-- convert input RGB (0-99999)
+-- to calibrated RGB values using cal_rgb
+-- TODO test does this function even work
+-- TODO parabolic 3-point interpolation
+function apply_cal(R, G, B) -- R,G,B from 0 to 99999
+  -- base channel is the one with maximum
+  -- raw value. it will be linearized 0-99999
+  -- other channels will follow the base
+  -- todo: find max value, currently we fix it to green
+  local base_chan = 2
+  -- simplistic approach: linear interpolation
+  -- make all sensors be the same as green
+  local target_rgb = {{},{},{}}
+  for i=1,3 do
+    for j=1,3 do
+      target_rgb[i][j]=cal_rgb[i][base_chan]
+    end
+  end
+
+  -- linear interpolate non-base chan to base chan
+  -- linear a*x+b
+  local a = {}
+  local b = {}
+  for j=1,3 do
+    -- math.floor()
+    a[j] = imath.div((target_rgb[1][base_chan]-target_rgb[3][base_chan]), (cal_rgb[1][j]-cal_rgb[3][j]))
+    b[j] = target_rgb[3][j] - imath.mul(cal_rgb[3][j], a[j])
+  end
+
+  R = imath.mul(R, a[1]) + b[1]
+  G = imath.mul(G, a[2]) + b[2]
+  B = imath.mul(B, a[3]) + b[3]
+
+  return R,G,B
+end
 -- **** end calibration ****
 
 -- **** begin colorimetry, normal operation ****
@@ -424,6 +522,7 @@ function colorimetry()
     print("colorcal.txt not found")
   end
   for i=1,shots do
+    hook_raw.set(10000)
     press('shoot_half')
     repeat sleep(10) until get_shooting()
     --click('shoot_full_only')
@@ -432,14 +531,15 @@ function colorimetry()
     hook_raw.wait_ready()
 
     local count, ms = set_yield(-1,-1)
-    calculate_colorspace()
-    set_yield(count, ms)
+    -- sensor values with calibration
+    calculate_colorspace(true)
 
+    set_yield(count, ms)
     hook_raw.continue()
     release('shoot_full_only')
     release('shoot_half')
-    sleep(300)
-end
+    hook_raw.set(0)
+  end
 end
 -- **** end colorimetry ****
 
@@ -449,8 +549,8 @@ if not shots then
   shots = 1
 end
 
-prev_raw_conf=get_raw()
 if enable_raw then
+  prev_raw_conf=get_raw()
   set_raw(true)
 end
 
@@ -459,18 +559,13 @@ end
 --local max_level
 --fails=0
 
--- set hook in raw for drawing
-hook_raw.set(10000)
-press('shoot_half')
-repeat sleep(10) until get_shooting()
-
 if calibrate then
   calibration()
 else
-  colorimetry()
+  colorimetry(true)
 end
 
--- release('shoot_full')
+-- restore timporary changed RAW setting
 if enable_raw then
   set_raw(prev_raw_conf)
 end
