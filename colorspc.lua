@@ -137,17 +137,43 @@ GARDNER2XY1E4 =
 }
 -- **** end color reference tables ***
 
--- **** begin inverse gamma coefficients ***
+-- **** begin inverse gamma ***
 IGAMMA1E5 =
 { --            div_lin  thresh   add     div     pow
   ["None"]   = { 100000, 100000,    0, 100000, 100000  },
   ["sRGB"]   = {1292000,   4045, 5500, 105500, 240000  },
   ["REC709"] = { 450000,   8100, 9900, 109900, 222222  },
 }
+
+-- inverse gamma
+-- image sensor applies gamma function.
+-- 3 different exposure bracketings should produce sam xy
+-- experimentally it is found that sRGB function fits best.
+-- this function removes gamma and returns linear RGB
+-- input  gamma RGB (float 0-1) (0-255 should be scaled to 0-1)
+-- output linear RGB (float 0-1)
+function invgamma(var)
+  -- https://en.wikipedia.org/wiki/SRGB
+  -- is this non-linear to linear formula (inverse)?
+  -- see for Rec.709: https://en.wikipedia.org/wiki/Rec._709
+  local inverse_gamma_name = inverse_gamma[inverse_gamma.index]
+  local gama_div1   =  fmath.new(IGAMMA1E5[inverse_gamma_name][1],100000) -- 12.92
+  local gama_thresh =  fmath.new(IGAMMA1E5[inverse_gamma_name][2],100000) --  0.04045
+  local gama_add    =  fmath.new(IGAMMA1E5[inverse_gamma_name][3],100000) --  0.05500
+  local gama_div    =  fmath.new(IGAMMA1E5[inverse_gamma_name][4],100000) --  1.055
+  local gama_pow    =  fmath.new(IGAMMA1E5[inverse_gamma_name][5],100000) --  2.400
+
+  if var > gama_thresh then
+    var = ((var + gama_add) / gama_div) ^ gama_pow
+  else
+    var = var / gama_div1
+  end
+
+  return var
+end
 -- **** end inverse gamma coefficiens ***
 
-
--- ******** begin color space conversion *********
+-- **** begin color space conversion ****
 -- conversion matrix
 -- various colorspaces and illuminators
 -- from http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
@@ -209,31 +235,6 @@ RGB2XYZ1E7 =
   },
 }
 
-
--- inverse gamma
--- if image sensor applies gamma function then
--- this function removes gamma and returns linear RGB
--- input  gamma RGB (float 0-1) (0-255 should be scaled to 0-1)
--- output linear RGB (float 0-1)
-function invgamma(var)
-  -- https://en.wikipedia.org/wiki/SRGB
-  -- is this non-linear to linear formula (inverse)?
-  -- see for Rec.709: https://en.wikipedia.org/wiki/Rec._709
-  local inverse_gamma_name = inverse_gamma[inverse_gamma.index]
-  local gama_div1   =  fmath.new(IGAMMA1E5[inverse_gamma_name][1],100000) -- 12.92
-  local gama_thresh =  fmath.new(IGAMMA1E5[inverse_gamma_name][2],100000) --  0.04045
-  local gama_add    =  fmath.new(IGAMMA1E5[inverse_gamma_name][3],100000) --  0.05500
-  local gama_div    =  fmath.new(IGAMMA1E5[inverse_gamma_name][4],100000) --  1.055
-  local gama_pow    =  fmath.new(IGAMMA1E5[inverse_gamma_name][5],100000) --  2.400
-
-  if var > gama_thresh then
-    var = ((var + gama_add) / gama_div) ^ gama_pow
-  else
-    var = var / gama_div1
-  end
-
-  return var
-end
 
 -- colorspace conversion formula
 -- input RGB fmath 0-1
