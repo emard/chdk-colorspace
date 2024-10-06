@@ -327,7 +327,12 @@ function calculate_colorspace(use_cal)
   g = invgamma(fmath.new(i_g*6,i_range*10)) -- i_g / i_range -- FIXME: 60% crude experimental white balance in G
   b = invgamma(fmath.new(i_b,i_range)) -- i_b / i_range
 
-  -- TODO apply calibration
+  -- TODO should calibration be applied before gamma?
+  -- for inverse_gamma = "None" it doesn't matter is it before or after.
+  -- apply calibration
+  if use_cal then
+    r,g,b = apply_cal(r,g,b)
+  end
 
   local CIE_X,CIE_Y,CIE_Z
   CIE_X,CIE_Y,CIE_Z = rgb2xyz(r,g,b)
@@ -375,12 +380,12 @@ end -- do_colorspace
 -- those numbers are raw sensor values obtained
 -- by taking 3 shots of various exposition
 -- of referent color surface
--- float's 0-1 are scaled as int's 0-100000
+-- float's 0-1 are scaled as int's 0-1000000 (1E6)
 cal_rgb =
 {
-  { 99999, 99999, 99999 }, -- RGB exposition 1/x
-  { 49999, 49999, 49999 }, -- RGB exposition 1/2x
-  {     0,     0,     0 }, -- RGB exposition 1/4x
+  { 999999, 999999, 999999 }, -- RGB exposition 1/x
+  { 499999, 499999, 499999 }, -- RGB exposition 1/2x
+  {      0,      0,      0 }, -- RGB exposition 1/4x
 }
 
 -- file COLORCAL.TXT contains linearized cal_rgb array
@@ -462,7 +467,7 @@ function calibration()
     local count, ms = set_yield(-1,-1)
     -- get sensor values without calibration thus (false) argument
     r,g,b = calculate_colorspace(false)
-    cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = (r*100000):int(),(g*100000):int(),(b*100000):int()
+    cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = (r*1000000):int(),(g*1000000):int(),(b*1000000):int()
     set_yield(count, ms)
 
     hook_raw.continue()
@@ -495,34 +500,45 @@ end
 -- to calibrated RGB values using cal_rgb
 -- TODO test does this function even work
 -- TODO parabolic 3-point interpolation
-function apply_cal(R, G, B) -- R,G,B from 0 to 99999
+-- input  R,G,B float's 0-1
+-- output R,G,B float's 0-1
+function apply_cal(R,G,B)
   -- base channel is the one with maximum
-  -- raw value. it will be linearized 0-99999
-  -- other channels will follow the base
+  -- raw value. it will be linearized 0-999999
+  -- other channels should be lower than the base channel
   -- todo: find max value, currently we fix it to green
+  -- because it gets max values in most cases
   local base_chan = 2
-  -- simplistic approach: linear interpolation
-  -- make all sensors be the same as green
-  local target_rgb = {{},{},{}}
+
+  -- convert int's 0-999999 to float's 0-1
+  local fcal_rgb = {{},{},{}}
   for i=1,3 do
     for j=1,3 do
-      target_rgb[i][j]=cal_rgb[i][base_chan]
+      fcal_rgb[i][j]=fmath.new(cal_rgb[i][j], 1000000)
     end
   end
 
-  -- linear interpolate non-base chan to base chan
+  -- scale all values to produce 1000*calib_r, 1000*calib_g, 1000*calib_b
+  -- reference calibration target color is given as script parameters
+  -- convert from RGB int's 0-999 to float's 0-1
+  local target = {}
+  target[1] = fmath.new(calib_r,1000)
+  target[2] = fmath.new(calib_g,1000)
+  target[3] = fmath.new(calib_b,1000)
+
+  -- currently only max illumination values are used fcal[1][rgb]
   -- linear a*x+b
+  -- currently b=0 always
   local a = {}
   local b = {}
   for j=1,3 do
-    -- math.floor()
-    a[j] = imath.div((target_rgb[1][base_chan]-target_rgb[3][base_chan]), (cal_rgb[1][j]-cal_rgb[3][j]))
-    b[j] = target_rgb[3][j] - imath.mul(cal_rgb[3][j], a[j])
+    a[j] = target[j]/fcal_rgb[1][j] -- FIXME use all 3 calib illumin. levels
+    b[j] = fmath.new(0,1) -- currently 0, FIXME
   end
 
-  R = imath.mul(R, a[1]) + b[1]
-  G = imath.mul(G, a[2]) + b[2]
-  B = imath.mul(B, a[3]) + b[3]
+  R = R * a[1] + b[1]
+  G = G * a[2] + b[2]
+  B = B * a[3] + b[3]
 
   return R,G,B
 end
