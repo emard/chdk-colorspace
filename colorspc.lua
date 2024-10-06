@@ -324,7 +324,7 @@ function calculate_colorspace(use_cal)
   -- float rgb range 0-1
   local r,g,b
   r = invgamma(fmath.new(i_r,i_range)) -- i_r / i_range
-  g = invgamma(fmath.new(i_g*6,i_range*10)) -- i_g / i_range -- FIXME: 60% crude experimental white balance in G
+  g = invgamma(fmath.new(i_g,i_range)) -- i_g / i_range
   b = invgamma(fmath.new(i_b,i_range)) -- i_b / i_range
 
   -- TODO should calibration be applied before gamma?
