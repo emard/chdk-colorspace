@@ -2,7 +2,7 @@
 @title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
 #illuminant=sRGB_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65} table[C
-#inverse_gamma=sRGB "Inverse gamma" {None REC709 sRGB} table
+#inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #enable_raw=false "Enable raw"
@@ -18,8 +18,8 @@
 -- hardcode illuminant and inverse_gamma
 -- to avoid misconfiguration
 -- SX280HS
--- illuminant=sRGB_D65
--- inverse_gamma=sRGB
+-- illuminant="sRGB_D65"
+-- inverse_gamma="None"
 
 -- shots=1 -- hardcode always 1 shot
 
@@ -153,10 +153,10 @@ IGAMMA1E5 =
 }
 
 -- inverse gamma
--- image sensor applies gamma function.
+-- some image sensor may apply gamma function.
 -- 3 different exposure bracketings should produce same xy
 -- experimentally it is found that for SX280HS camera
--- "sRGB" inverse gamma function fits best for same xy
+-- "None" inverse gamma function fits best for same xy
 -- for different exposure and/or light intensity.
 -- this function should remove gamma and returns linear RGB
 -- input  gamma RGB (float 0-1) (128-4095 should be scaled to 0-1)
