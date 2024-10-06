@@ -363,15 +363,30 @@ end -- do_colorspace
 -- of referent color surface
 cal_rgb =
 {
-  { 99999, 99999, 99999 }, -- exposition 1/x
-  { 49999, 49999, 49999 }, -- exposition 1/2x
-  {     0,     0,     0 }, -- exposition 1/4x
+  { 99999, 99999, 99999 }, -- RGB exposition 1/x
+  { 49999, 49999, 49999 }, -- RGB exposition 1/2x
+  {     0,     0,     0 }, -- RGB exposition 1/4x
 }
 
 function calibration()
-  write_cal_file()
+  if write_cal_file() then
+    print("colorcal.txt written")
+  else
+    print("colorcal.txt write error")
+  end
 end
 
+-- file COLORCAL.TXT contains linearized cal_rgb array
+-- example:
+-- 999999 -- R exp. 1/x
+-- 999999 -- G exp. 1/x
+-- 999999 -- B exp. 1/x
+-- 499999 -- R exp. 1/2x
+-- 499999 -- G exp. 1/2x
+-- 499999 -- B exp. 1/2x
+--      0 -- R exp. 1/4x
+--      0 -- G exp. 1/4x
+--      0 -- B exp. 1/4x
 function write_cal_file()
   local calfile=io.open("A/colorcal.txt","wb")
   if calfile then
@@ -381,7 +396,9 @@ function write_cal_file()
       end
     end
     calfile:close()
+    return true
   end
+  return false
 end
 
 function read_cal_file()
@@ -393,30 +410,35 @@ function read_cal_file()
       end
     end
     calfile:close()
+    return true
   end
+  return false
 end
 -- **** end calibration ****
 
 -- **** begin colorimetry, normal operation ****
 function colorimetry()
-read_cal_file()
-for i=1,shots do
-  press('shoot_half')
-  repeat sleep(10) until get_shooting()
-  --click('shoot_full_only')
-  press('shoot_full_only')
+  if read_cal_file() then
+    print("colorcal.txt read")
+  else
+    print("colorcal.txt not found")
+  end
+  for i=1,shots do
+    press('shoot_half')
+    repeat sleep(10) until get_shooting()
+    --click('shoot_full_only')
+    press('shoot_full_only')
+    -- wait for the image to be captured
+    hook_raw.wait_ready()
 
-  -- wait for the image to be captured
-  hook_raw.wait_ready()
+    local count, ms = set_yield(-1,-1)
+    calculate_colorspace()
+    set_yield(count, ms)
 
-  local count, ms = set_yield(-1,-1)
-  calculate_colorspace()
-  set_yield(count, ms)
-
-  hook_raw.continue()
-  release('shoot_full_only')
-  release('shoot_half')
-  sleep(300)
+    hook_raw.continue()
+    release('shoot_full_only')
+    release('shoot_half')
+    sleep(300)
 end
 end
 -- **** end colorimetry ****
