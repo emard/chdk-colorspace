@@ -2,3 +2,5 @@
 [x] floating point available in CHDK 1.6 imath -> fmath
 [ ] choose inverse gamma coefficients sRGB, Rec.709 etc
 [ ] input value table choice more chars than 6
+[ ] camera raw sensor readings ignore camera manual
+    white balance. Make internal white balance
