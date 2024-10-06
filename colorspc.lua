@@ -272,7 +272,7 @@ end
 -- colorimetry calculation
 -- temporary display on screen
 -- markings on saved picture
-function calculate_colorspace()
+function calculate_colorspace(use_cal)
   local font_h  = 200        -- digit height Y
   local font_w  = font_h/2   -- digit width X
   local font_p  = font_h*3/4 -- pitch (column width) X
@@ -352,19 +352,54 @@ end -- do_colorspace
 -- ******** begin image processing *********
 
 -- **** begin calibration ****
--- first set camera to manual white balance
--- prepare white surface (paper)
--- SET->White Balance->SET-> point camera to white -> DISP
--- after white balance, prepare reference color with known
--- CIE xy value and do this calibration
-function calibrate()
--- write_cal_file()
+-- white balance or reference color with known
+-- CIE xy value
+
+-- initialize RGB calibration matrix
+-- but for now we start from non-modifying RGB
+-- later, it should be read from a file
+-- those numbers are raw sensor values obtained
+-- by taking 3 shots of various exposition
+-- of referent color surface
+cal_rgb =
+{
+  { 99999, 99999, 99999 }, -- exposition 1/x
+  { 49999, 49999, 49999 }, -- exposition 1/2x
+  {     0,     0,     0 }, -- exposition 1/4x
+}
+
+function calibration()
+  write_cal_file()
+end
+
+function write_cal_file()
+  local calfile=io.open("A/colorcal.txt","wb")
+  if calfile then
+    for i=1,3 do
+      for j=1,3 do
+        calfile:write(string.format("%d\n", cal_rgb[i][j]))
+      end
+    end
+    calfile:close()
+  end
+end
+
+function read_cal_file()
+  local calfile=io.open("A/colorcal.txt","rb")
+  if calfile then
+    for i=1,3 do
+      for j=1,3 do
+        cal_rgb[i][j] = calfile:read("*n")
+      end
+    end
+    calfile:close()
+  end
 end
 -- **** end calibration ****
 
 -- **** begin colorimetry, normal operation ****
 function colorimetry()
--- read_cal_file()
+read_cal_file()
 for i=1,shots do
   press('shoot_half')
   repeat sleep(10) until get_shooting()
@@ -407,7 +442,11 @@ hook_raw.set(10000)
 press('shoot_half')
 repeat sleep(10) until get_shooting()
 
-colorimetry()
+if calibrate then
+  calibration()
+else
+  colorimetry()
+end
 
 -- release('shoot_full')
 if enable_raw then
