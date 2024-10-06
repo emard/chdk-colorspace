@@ -147,10 +147,12 @@ IGAMMA1E5 =
 
 -- inverse gamma
 -- image sensor applies gamma function.
--- 3 different exposure bracketings should produce sam xy
--- experimentally it is found that sRGB function fits best.
--- this function removes gamma and returns linear RGB
--- input  gamma RGB (float 0-1) (0-255 should be scaled to 0-1)
+-- 3 different exposure bracketings should produce same xy
+-- experimentally it is found that for SX280HS camera
+-- "sRGB" inverse gamma function fits best for same xy
+-- for different exposure and/or light intensity.
+-- this function should remove gamma and returns linear RGB
+-- input  gamma RGB (float 0-1) (128-4095 should be scaled to 0-1)
 -- output linear RGB (float 0-1)
 function invgamma(var)
   -- https://en.wikipedia.org/wiki/SRGB
