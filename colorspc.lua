@@ -2,7 +2,7 @@
 @title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
 #illuminant=sRGB_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65} table[C
-#inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
+#inverse_gamma=sRGB "Inverse gamma" {None REC709 sRGB} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #enable_raw=false "Enable raw"
@@ -14,7 +14,14 @@
 #shots=1 "Shots" -- number of successive shots
 ]]
 
--- shots=1 -- always 1 shot
+-- for known camera it is recommended to
+-- hardcode illuminant and inverse_gamma
+-- to avoid misconfiguration
+-- SX280HS
+-- illuminant=sRGB_D65
+-- inverse_gamma=sRGB
+
+-- shots=1 -- hardcode always 1 shot
 
 -- white is CIE x=0.333 y=0.333
 
