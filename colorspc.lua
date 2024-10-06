@@ -326,13 +326,13 @@ function calculate_colorspace()
 
   -- draw RGB (color) digits right aligned on the left side
   -- local x_left = rawop.get_jpeg_left()+400
-  local x_left = x1-font_p*6-100
+  local x_left = x1-font_p*7
   draw_digits(x_left,y1+font_nl*0,str1E3(r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
   draw_digits(x_left,y1+font_nl*1,str1E3(g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
   draw_digits(x_left,y1+font_nl*2,str1E3(b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
 
   -- draw xy (white) digits left aligned on the right side
-  local x_right = x1+meter_size_x+100
+  local x_right = x1+meter_size_x+font_p
   draw_digits(x_right,y1+font_nl*0,str1E3(CIE_x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right,y1+font_nl*1,str1E3(CIE_y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
   -- draw_digits(x_right,y1+font_nl*2,str1E3(f_z),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
