@@ -2,7 +2,7 @@
 @title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
 #illuminant=sRGB_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65} table[C
-#inverse_gamma=sRGB "Inverse gamma" {None REC709 sRGB} table
+#inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #enable_raw=false "Enable raw"
