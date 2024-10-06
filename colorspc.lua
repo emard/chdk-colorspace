@@ -1,8 +1,8 @@
 --[[
 @title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
-#illuminant=sRGB_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65} table
-#inverse_gamma=None "Inverse gamma" {sRGB REC709 None} table
+#illuminant=sRGB_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65} table[C
+#inverse_gamma=sRGB "Inverse gamma" {None REC709 sRGB} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #enable_raw=false "Enable raw"
@@ -351,6 +351,7 @@ function calculate_colorspace(use_cal)
   --logfile:write(string.format("meter r=%d g1=%d g2=%d b=%d\n",r,g1,g2,b))
   --logfile:write(string.format("meter r=%s g1=%s g2=%s b=%s\n",str1E3(i_r),str1E3(i_g1),str1E3(i_g2),str1E3(i_b)))
   --logfile.close()
+  return r,g,b
 end -- do_colorspace
 -- ******** begin image processing *********
 
@@ -420,7 +421,6 @@ function calibration()
   release('shoot_half')
   -- set_aflock(1) -- focus lock - no more change of the focus
 
-  if false then
   cal_rgb={{},{},{}} -- we will get here bracketed values
   for i=1,3 do -- 3 shots for bracketing
         shoot() -- fix this more elegant way
@@ -447,7 +447,8 @@ function calibration()
 
 	local count, ms = set_yield(-1,-1)
 	-- get sensor values without calibration thus (false) argument
-        cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = calculate_colorspace(false)
+	r,g,b = calculate_colorspace(false)
+        cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = (r*100000):int(),(g*100000):int(),(b*100000):int()
 	set_yield(count, ms)
 
 	hook_raw.continue()
@@ -457,7 +458,6 @@ function calibration()
 	-- set_aflock(0)
 	-- sleep(1900)
   end -- for shots
-  end -- debug disable above code
 
   -- restore values
   set_tv96(afl_tv)
