@@ -542,6 +542,7 @@ function calibration()
     local count, ms = set_yield(-1,-1)
     -- get sensor values without calibration thus (false) argument
     r,g,b = calculate_colorspace(false)
+    -- convert float's to int's
     cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = (r*1000000):int(),(g*1000000):int(),(b*1000000):int()
     set_yield(count, ms)
 
