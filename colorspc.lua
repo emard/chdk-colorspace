@@ -261,23 +261,52 @@ RGB2XYZ1E7 =
 -- output inverse float matrix 3x3
 function matinv3x3(m)
   -- inverse determinant
-  invdet = fmath.new(1,1) /
-         ( m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2]) -
-           m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
-           m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]) )
+  local invdet = fmath.new(1,1) /
+         ( m[0+1][0+1] * (m[1+1][1+1] * m[2+1][2+1] - m[2+1][1+1] * m[1+1][2+1]) -
+           m[0+1][1+1] * (m[1+1][0+1] * m[2+1][2+1] - m[1+1][2+1] * m[2+1][0+1]) +
+           m[0+1][2+1] * (m[1+1][0+1] * m[2+1][1+1] - m[1+1][1+1] * m[2+1][0+1]) )
 
-  minv = {{},{},{}} -- placeholder array for inverse of matrix m
-  minv[0][0] = (m[1][1] * m[2][2] - m[2][1] * m[1][2]) * invdet;
-  minv[0][1] = (m[0][2] * m[2][1] - m[0][1] * m[2][2]) * invdet;
-  minv[0][2] = (m[0][1] * m[1][2] - m[0][2] * m[1][1]) * invdet;
-  minv[1][0] = (m[1][2] * m[2][0] - m[1][0] * m[2][2]) * invdet;
-  minv[1][1] = (m[0][0] * m[2][2] - m[0][2] * m[2][0]) * invdet;
-  minv[1][2] = (m[1][0] * m[0][2] - m[0][0] * m[1][2]) * invdet;
-  minv[2][0] = (m[1][0] * m[2][1] - m[2][0] * m[1][1]) * invdet;
-  minv[2][1] = (m[2][0] * m[0][1] - m[0][0] * m[2][1]) * invdet;
-  minv[2][2] = (m[0][0] * m[1][1] - m[1][0] * m[0][1]) * invdet;
+  local minv = {{},{},{}} -- placeholder array for inverse of matrix m
+  minv[0+1][0+1] = (m[1+1][1+1] * m[2+1][2+1] - m[2+1][1+1] * m[1+1][2+1]) * invdet;
+  minv[0+1][1+1] = (m[0+1][2+1] * m[2+1][1+1] - m[0+1][1+1] * m[2+1][2+1]) * invdet;
+  minv[0+1][2+1] = (m[0+1][1+1] * m[1+1][2+1] - m[0+1][2+1] * m[1+1][1+1]) * invdet;
+  minv[1+1][0+1] = (m[1+1][2+1] * m[2+1][0+1] - m[1+1][0+1] * m[2+1][2+1]) * invdet;
+  minv[1+1][1+1] = (m[0+1][0+1] * m[2+1][2+1] - m[0+1][2+1] * m[2+1][0+1]) * invdet;
+  minv[1+1][2+1] = (m[1+1][0+1] * m[0+1][2+1] - m[0+1][0+1] * m[1+1][2+1]) * invdet;
+  minv[2+1][0+1] = (m[1+1][0+1] * m[2+1][1+1] - m[2+1][0+1] * m[1+1][1+1]) * invdet;
+  minv[2+1][1+1] = (m[2+1][0+1] * m[0+1][1+1] - m[0+1][0+1] * m[2+1][1+1]) * invdet;
+  minv[2+1][2+1] = (m[0+1][0+1] * m[1+1][1+1] - m[1+1][0+1] * m[0+1][1+1]) * invdet;
 
   return minv
+end
+
+-- test matrix inversion
+--  input
+-- [2 1 3]
+-- [0 2 4]
+-- [1 1 2]
+--  output
+-- [ 0 -0.5  1]
+-- [-2 -0.5  4]
+-- [ 1  0.5 -2]
+-- verified with maxima
+-- a: matrix([2,1,3],[0,2,4],[1,1,2]);
+-- invert(a);
+function test_matinv3x3()
+  local imat = {{2,1,3},
+                {0,2,4},
+                {1,1,2}}
+  -- convert int to float
+  local fmat = {{},{},{}}
+  for i = 1,3 do
+    for j = 1,3 do
+      fmat[i][j] = fmath.new(imat[i][j],1)
+    end
+  end
+  print("input matrix")
+  printmat3x3(fmat)
+  print("inverted matrix")
+  printmat3x3(matinv3x3(fmat))
 end
 
 -- colorspace conversion formula
@@ -560,6 +589,8 @@ function apply_cal(R,G,B)
     end
   end
 
+  printmat3x3(fcal_rgb)
+
   -- scale all values to produce 1000*calib_r, 1000*calib_g, 1000*calib_b
   -- reference calibration target color is given as script parameters
   -- convert from RGB int's 0-999 to float's 0-1
@@ -642,6 +673,7 @@ if enable_raw then
   set_raw(prev_raw_conf)
 end
 
+-- test_matinv3x3()
 -- print("press key")
 wait_click(0)
 
