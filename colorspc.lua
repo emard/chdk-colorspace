@@ -579,17 +579,9 @@ end
 -- input  R,G,B float's 0-1
 -- output R,G,B float's 0-1
 function apply_cal(R,G,B)
-  -- base channel is the one with maximum
-  -- raw value. it will be linearized 0-999999
-  -- other channels should be lower than the base channel
-  -- todo: find max value, currently we fix it to green
-  -- because it gets max values in most cases
-  local base_chan = 2
-
   -- convert int's 0-999999 to float's 0-1
   fcal_rgb = mat3x3int2float(CALRGB1E6,1000000)
 
-  -- scale all values to produce 1000*calib_r, 1000*calib_g, 1000*calib_b
   -- reference calibration target color is given as script parameters
   -- convert from RGB int's 0-999 to float's 0-1
   local target = {}
@@ -602,6 +594,9 @@ function apply_cal(R,G,B)
   local cal_x = fmath.new(calib_x,1000)
   local cal_y = fmath.new(calib_y,1000)
 
+  -- calibration target is Gardner disc
+  -- place transparent color in front of camera lens
+  -- and point camera to white paper
   if calib_target_name == "Gardner" then
     cal_x = fmath.new(GARDNER2XY1E4[gardner][1],10000)
     cal_y = fmath.new(GARDNER2XY1E4[gardner][2],10000)
@@ -627,13 +622,14 @@ function apply_cal(R,G,B)
     --target = dotproduct(xyz2rgb,{X,Y,Z})
   end
 
-  -- currently only max illumination values are used fcal[1][rgb]
-  -- linear a*x+b
-  -- TODO parabolic 3-point interpolation
+  -- currently only 1st and 2nd bracketing values are used
+  -- for linear interpolation a*x+b
+  -- TODO parabolic 3-point interpolation a*x*x+b*x+c
   local a = {}
   local b = {}
   -- a*fcal_rgb[1][j]+b = target[j]
   -- a*fcal_rgb[2][j]+b = target[j]/2
+  -- a*fcal_rgb[3][j]+b = target[j]/4
   -- a*x1+b = t
   -- a*x2+b = t/2
   -- b = t-a*x1
@@ -642,6 +638,7 @@ function apply_cal(R,G,B)
   -- a*(x2-x1) = (1/2-1)*t
   -- a*(x1-x2) = (1-1/2)*t
   -- a = (1-1/2)*t/(x1-x2)
+  -- a = (1-1/4)*t/(x1-x3)
   for j=1,3 do
     a[j] = (fmath.new(1,1)-fmath.new(1,2))*target[j]/(fcal_rgb[1][j]-fcal_rgb[2][j])
     b[j] = target[j]-a[j]*fcal_rgb[1][j]
