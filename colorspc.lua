@@ -301,12 +301,7 @@ function test_matinv3x3()
                 {0,2,4},
                 {1,1,2}}
   -- convert int to float
-  local fmat = {{},{},{}}
-  for i = 1,3 do
-    for j = 1,3 do
-      fmat[i][j] = fmath.new(imat[i][j],1)
-    end
-  end
+  fmat = mat3x3int2float(imat,1)
   print("input matrix")
   printmat3x3(fmat)
   print("inverted matrix")
@@ -592,12 +587,13 @@ function apply_cal(R,G,B)
   local base_chan = 2
 
   -- convert int's 0-999999 to float's 0-1
-  local fcal_rgb = {{},{},{}}
-  for i=1,3 do
-    for j=1,3 do
-      fcal_rgb[i][j]=fmath.new(cal_rgb[i][j], 1000000)
-    end
-  end
+  --local fcal_rgb = {{},{},{}}
+  --for i=1,3 do
+  --  for j=1,3 do
+  --    fcal_rgb[i][j]=fmath.new(cal_rgb[i][j], 1000000)
+  --  end
+  --end
+  fcal_rgb = mat3x3int2float(cal_rgb,1000000)
 
   -- scale all values to produce 1000*calib_r, 1000*calib_g, 1000*calib_b
   -- reference calibration target color is given as script parameters
