@@ -350,7 +350,7 @@ end
 -- colorimetry calculation
 -- temporary display on screen
 -- markings on saved picture
--- TODO if use_cal==true then apply calibration using cal_rgb
+-- TODO if use_cal==true then apply calibration using CALRGB1E6
 function calculate_colorspace(use_cal)
   -- local font_h  = 200        -- digit height Y taken from script arguments
   local font_w  = font_h/2   -- digit width X
@@ -456,14 +456,14 @@ end -- do_colorspace
 -- by taking 3 shots of various exposition
 -- of referent color surface
 -- float's 0-1 are scaled as int's 0-1000000 (1E6)
-cal_rgb =
+CALRGB1E6 =
 {
   { 999999, 999999, 999999 }, -- RGB exposition 1/x
   { 499999, 499999, 499999 }, -- RGB exposition 1/2x
   {      0,      0,      0 }, -- RGB exposition 1/4x
 }
 
--- file COLORCAL.TXT contains linearized cal_rgb array
+-- file COLORCAL.TXT contains linearized CALRGB1E6 array
 -- example:
 -- 999999 -- R exp. 1/x
 -- 999999 -- G exp. 1/x
@@ -479,7 +479,7 @@ function write_cal_file()
   if calfile then
     for i=1,3 do
       for j=1,3 do
-        calfile:write(string.format("%d\n", cal_rgb[i][j]))
+        calfile:write(string.format("%d\n", CALRGB1E6[i][j]))
       end
     end
     calfile:close()
@@ -493,7 +493,7 @@ function read_cal_file()
   if calfile then
     for i=1,3 do
       for j=1,3 do
-        cal_rgb[i][j] = calfile:read("*n")
+        CALRGB1E6[i][j] = calfile:read("*n")
       end
     end
     calfile:close()
@@ -511,7 +511,7 @@ function calibration()
   release('shoot_half')
   -- set_aflock(1) -- focus lock - no more change of the focus
 
-  cal_rgb={{},{},{}} -- we will get here bracketed values
+  CALRGB1E6={{},{},{}} -- we will get here bracketed values
   for i=1,3 do -- 3 shots for bracketing
     shoot() -- fix this more elegant way
     -- with shoot() for 3 loops we get 6 pics.
@@ -543,7 +543,7 @@ function calibration()
     -- get sensor values without calibration thus (false) argument
     r,g,b = calculate_colorspace(false)
     -- convert float's to int's
-    cal_rgb[i][1], cal_rgb[i][2], cal_rgb[i][3] = (r*1000000):int(),(g*1000000):int(),(b*1000000):int()
+    CALRGB1E6[i][1], CALRGB1E6[i][2], CALRGB1E6[i][3] = (r*1000000):int(),(g*1000000):int(),(b*1000000):int()
     set_yield(count, ms)
 
     hook_raw.continue()
@@ -560,10 +560,10 @@ function calibration()
   set_av96(afl_av)
   set_aflock(0)
 
-  -- now we have all the sensor values ready in cal_rgb[1..3][1..3]
-  -- cal_rgb[number_of_shots][1-red, 2-green, 3-blue]
+  -- now we have all the sensor values ready in CALRGB1E6[1..3][1..3]
+  -- CALRGB1E6[number_of_shots][1-red, 2-green, 3-blue]
   -- we can interpolate them for a white balance
-  -- R,G,B = apply_cal(cal_rgb[1][1], cal_rgb[1][2], cal_rgb[1][3])
+  -- R,G,B = apply_cal(CALRGB1E6[1][1], CALRGB1E6[1][2], CALRGB1E6[1][3])
   -- write calib data to file
   if write_cal_file() then
     print("colorcal.txt written")
@@ -573,7 +573,7 @@ function calibration()
 end
 
 -- convert input RGB (0-99999)
--- to calibrated RGB values using cal_rgb
+-- to calibrated RGB values using CALRGB1E6
 -- TODO test does this function even work
 -- TODO parabolic 3-point interpolation
 -- input  R,G,B float's 0-1
@@ -587,7 +587,7 @@ function apply_cal(R,G,B)
   local base_chan = 2
 
   -- convert int's 0-999999 to float's 0-1
-  fcal_rgb = mat3x3int2float(cal_rgb,1000000)
+  fcal_rgb = mat3x3int2float(CALRGB1E6,1000000)
 
   -- scale all values to produce 1000*calib_r, 1000*calib_g, 1000*calib_b
   -- reference calibration target color is given as script parameters
