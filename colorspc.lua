@@ -262,20 +262,20 @@ RGB2XYZ1E7 =
 function matinv3x3(m)
   -- inverse determinant
   local invdet = fmath.new(1,1) /
-         ( m[0+1][0+1] * (m[1+1][1+1] * m[2+1][2+1] - m[2+1][1+1] * m[1+1][2+1]) -
-           m[0+1][1+1] * (m[1+1][0+1] * m[2+1][2+1] - m[1+1][2+1] * m[2+1][0+1]) +
-           m[0+1][2+1] * (m[1+1][0+1] * m[2+1][1+1] - m[1+1][1+1] * m[2+1][0+1]) )
+         ( m[1][1] * (m[2][2] * m[3][3] - m[3][2] * m[2][3]) -
+           m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
+           m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) )
 
   local minv = {{},{},{}} -- placeholder array for inverse of matrix m
-  minv[0+1][0+1] = (m[1+1][1+1] * m[2+1][2+1] - m[2+1][1+1] * m[1+1][2+1]) * invdet;
-  minv[0+1][1+1] = (m[0+1][2+1] * m[2+1][1+1] - m[0+1][1+1] * m[2+1][2+1]) * invdet;
-  minv[0+1][2+1] = (m[0+1][1+1] * m[1+1][2+1] - m[0+1][2+1] * m[1+1][1+1]) * invdet;
-  minv[1+1][0+1] = (m[1+1][2+1] * m[2+1][0+1] - m[1+1][0+1] * m[2+1][2+1]) * invdet;
-  minv[1+1][1+1] = (m[0+1][0+1] * m[2+1][2+1] - m[0+1][2+1] * m[2+1][0+1]) * invdet;
-  minv[1+1][2+1] = (m[1+1][0+1] * m[0+1][2+1] - m[0+1][0+1] * m[1+1][2+1]) * invdet;
-  minv[2+1][0+1] = (m[1+1][0+1] * m[2+1][1+1] - m[2+1][0+1] * m[1+1][1+1]) * invdet;
-  minv[2+1][1+1] = (m[2+1][0+1] * m[0+1][1+1] - m[0+1][0+1] * m[2+1][1+1]) * invdet;
-  minv[2+1][2+1] = (m[0+1][0+1] * m[1+1][1+1] - m[1+1][0+1] * m[0+1][1+1]) * invdet;
+  minv[1][1] = (m[2][2] * m[3][3] - m[3][2] * m[2][3]) * invdet;
+  minv[1][2] = (m[1][3] * m[3][2] - m[1][2] * m[3][3]) * invdet;
+  minv[1][3] = (m[1][2] * m[2][3] - m[1][3] * m[2][2]) * invdet;
+  minv[2][1] = (m[2][3] * m[3][1] - m[2][1] * m[3][3]) * invdet;
+  minv[2][2] = (m[1][1] * m[3][3] - m[1][3] * m[3][1]) * invdet;
+  minv[2][3] = (m[2][1] * m[1][3] - m[1][1] * m[2][3]) * invdet;
+  minv[3][1] = (m[2][1] * m[3][2] - m[3][1] * m[2][2]) * invdet;
+  minv[3][2] = (m[3][1] * m[1][2] - m[1][1] * m[3][2]) * invdet;
+  minv[3][3] = (m[1][1] * m[2][2] - m[2][1] * m[1][2]) * invdet;
 
   return minv
 end
@@ -588,8 +588,6 @@ function apply_cal(R,G,B)
       fcal_rgb[i][j]=fmath.new(cal_rgb[i][j], 1000000)
     end
   end
-
-  printmat3x3(fcal_rgb)
 
   -- scale all values to produce 1000*calib_r, 1000*calib_g, 1000*calib_b
   -- reference calibration target color is given as script parameters
