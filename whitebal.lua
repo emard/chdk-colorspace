@@ -14,6 +14,9 @@
 #calib_b=500 "Calib Blue"  [0 999]
 ]]
 
+-- this is old and unfinished code with integer arithmetic
+-- newer is colorspc.lua for chdk 1.6
+
 -- #shots=1 "Shots" -- configurable parameter
 -- shots=1 -- always 1 shot
 
