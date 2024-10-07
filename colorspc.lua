@@ -313,35 +313,40 @@ function test_matinv3x3()
   printmat3x3(matinv3x3(fmat))
 end
 
+-- input matrix 3x3, vector 3
+-- output vector 3
+-- p = m . v
+function dotproduct(m,v)
+  local p = {}
+  for i=1,3 do
+    p[i] = m[i][1]*v[1] + m[i][2]*v[2] + m[i][3]*v[3]
+  end
+  return p
+end
+
+-- return im/scale
+function mat3x3int2float(im,scale)
+  local m = {{},{},{}}
+  for i = 1,3 do
+    for j = 1,3 do
+      m[i][j] = fmath.new(im[i][j],scale)
+    end
+  end
+  return m
+end
+
 -- colorspace conversion formula
 -- input RGB fmath 0-1
 -- output XYZ fmath 0-1
-function rgb2xyz(var_R, var_G, var_B)
+function rgb2xyz(R,G,B)
   -- conversion matrix
   -- see http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
   -- depends on standard viewpoint and light source
   -- Observer = 2°, Illuminant = D65
-  -- local space_illum = "s_D65"
-  local space_illum = illuminant[illuminant.index]
-  local xr = fmath.new(RGB2XYZ1E7[space_illum][1][1], 10000000)
-  local xg = fmath.new(RGB2XYZ1E7[space_illum][1][2], 10000000)
-  local xb = fmath.new(RGB2XYZ1E7[space_illum][1][3], 10000000)
-  local yr = fmath.new(RGB2XYZ1E7[space_illum][2][1], 10000000)
-  local yg = fmath.new(RGB2XYZ1E7[space_illum][2][2], 10000000)
-  local yb = fmath.new(RGB2XYZ1E7[space_illum][2][3], 10000000)
-  local zr = fmath.new(RGB2XYZ1E7[space_illum][3][1], 10000000)
-  local zg = fmath.new(RGB2XYZ1E7[space_illum][3][2], 10000000)
-  local zb = fmath.new(RGB2XYZ1E7[space_illum][3][3], 10000000)
-
-  -- RGB to XYZ conversion (matrix dot-product)
-  -- [X]   [xr xg xb]   [R]
-  -- [Y] = [yr yg yb] . [G]
-  -- [Z]   [zr zg zb]   [B]
-  local X = var_R * xr + var_G * xg + var_B * xb
-  local Y = var_R * yr + var_G * yg + var_B * yb
-  local Z = var_R * zr + var_G * zg + var_B * zb
-
-  return X,Y,Z
+  local illuminant_name = illuminant[illuminant.index]
+  m = mat3x3int2float(RGB2XYZ1E7[illuminant_name], 10000000)
+  p = dotproduct(m,{R,G,B})
+  return p[1],p[2],p[3] -- XYZ
 end
 -- ******** end color space conversion *********
 
@@ -602,6 +607,11 @@ function apply_cal(R,G,B)
   target[2] = fmath.new(calib_g,1000)
   target[3] = fmath.new(calib_b,1000)
 
+  local calib_target_name = calib_target[calib_target.index]
+  -- print("target name", calib_target_name)
+  if target_name == "xy" then
+  end
+  
   -- currently only max illumination values are used fcal[1][rgb]
   -- linear a*x+b
   -- currently b=0 always
