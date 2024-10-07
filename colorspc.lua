@@ -1,7 +1,7 @@
 --[[
 @title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
-#illuminant=sRGB_D65 "RGB_Illuminant" {Adobe_D65 Apple_D65 CIE_E ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65} table[C
+#illuminant=CIE_E "RGB_Illuminant" {Adobe_D65 Apple_D65 ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65 CIE_E} table
 #inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
@@ -18,7 +18,7 @@
 -- hardcode illuminant and inverse_gamma
 -- to avoid misconfiguration
 -- SX280HS
--- illuminant="sRGB_D65"
+-- illuminant="CIE_E"
 -- inverse_gamma="None"
 
 -- shots=1 -- hardcode always 1 shot
@@ -39,6 +39,18 @@ function str1E3(val,max_size)
   s = val:tostr(3)
   return string.rep(" ",(max_size or 0)-#s) .. s
 end
+
+function printvec3(v)
+  print(str1E3(v[1],7) .. str1E3(v[2],7) .. str1E3(v[3],7))
+end
+
+-- print 3x3 float matrix
+function printmat3x3(m)
+  for i = 1,3 do
+    printvec3(m[i])
+  end
+end
+
 -- **** end float formatter ****
 
 
@@ -244,6 +256,29 @@ RGB2XYZ1E7 =
   },
 }
 
+-- computes the inverse of a matrix m
+-- input float matrix 3x3
+-- output inverse float matrix 3x3
+function matinv3x3(m)
+  -- inverse determinant
+  invdet = fmath.new(1,1) /
+         ( m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2]) -
+           m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+           m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]) )
+
+  minv = {{},{},{}} -- placeholder array for inverse of matrix m
+  minv[0][0] = (m[1][1] * m[2][2] - m[2][1] * m[1][2]) * invdet;
+  minv[0][1] = (m[0][2] * m[2][1] - m[0][1] * m[2][2]) * invdet;
+  minv[0][2] = (m[0][1] * m[1][2] - m[0][2] * m[1][1]) * invdet;
+  minv[1][0] = (m[1][2] * m[2][0] - m[1][0] * m[2][2]) * invdet;
+  minv[1][1] = (m[0][0] * m[2][2] - m[0][2] * m[2][0]) * invdet;
+  minv[1][2] = (m[1][0] * m[0][2] - m[0][0] * m[1][2]) * invdet;
+  minv[2][0] = (m[1][0] * m[2][1] - m[2][0] * m[1][1]) * invdet;
+  minv[2][1] = (m[2][0] * m[0][1] - m[0][0] * m[2][1]) * invdet;
+  minv[2][2] = (m[0][0] * m[1][1] - m[1][0] * m[0][1]) * invdet;
+
+  return minv
+end
 
 -- colorspace conversion formula
 -- input RGB fmath 0-1
@@ -333,6 +368,13 @@ function calculate_colorspace(use_cal)
   if use_cal then
     r,g,b = apply_cal(r,g,b)
   end
+
+  -- fixed rgb value for debugging
+  -- For Illuminant "CIE_E" and r=g=b=0.5
+  -- CIE values should be x=0.333 y=0.333
+  --r=fmath.new(1,2) -- 1/2 = 0.5
+  --g=r
+  --b=r
 
   local CIE_X,CIE_Y,CIE_Z
   CIE_X,CIE_Y,CIE_Z = rgb2xyz(r,g,b)
