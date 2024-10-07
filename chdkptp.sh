@@ -1,0 +1,1 @@
+/home/lab/bin/chdkptp-r964/chdkptp.sh
