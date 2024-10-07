@@ -1,16 +1,20 @@
 --[[
 @title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
+#calibrate=false "Calibrate"
+#calib_target=RGB "Calib target" {Gardner xy RGB} table
+#calib_r=200 "Calib Red"   [0 999]
+#calib_g=200 "Calib Green" [0 999]
+#calib_b=200 "Calib Blue"  [0 999]
+#calib_x=333 "Calib x"  [0 999]
+#calib_y=333 "Calib y"  [0 999]
+#gardner=11 "Calib Gardner" [1 18]
 #illuminant=CIE_E "RGB_Illuminant" {Adobe_D65 Apple_D65 ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65 CIE_E} table
 #inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
+#font_h=200 "Font height" [10 1000]
 #enable_raw=false "Enable raw"
-#calibrate=false "Calibrate"
-#gardner=11 "Gardner Yellow" [1 18]
-#calib_r=500 "Calib Red"   [0 999]
-#calib_g=500 "Calib Green" [0 999]
-#calib_b=500 "Calib Blue"  [0 999]
 #shots=1 "Shots" -- number of successive shots
 ]]
 
@@ -348,7 +352,7 @@ end
 -- markings on saved picture
 -- TODO if use_cal==true then apply calibration using cal_rgb
 function calculate_colorspace(use_cal)
-  local font_h  = 200        -- digit height Y
+  -- local font_h  = 200        -- digit height Y taken from script arguments
   local font_w  = font_h/2   -- digit width X
   local font_p  = font_h*3/4 -- pitch (column width) X
   local font_t  = font_h/10  -- segment line thickness
