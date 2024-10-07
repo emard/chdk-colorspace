@@ -599,8 +599,16 @@ function apply_cal(R,G,B)
 
   local calib_target_name = calib_target[calib_target.index]
   -- print("target name", calib_target_name)
+  local cal_x = fmath.new(calib_x,1000)
+  local cal_y = fmath.new(calib_y,1000)
+
+  if calib_target_name == "Gardner" then
+    cal_x = fmath.new(GARDNER2XY1E4[gardner][1],10000)
+    cal_y = fmath.new(GARDNER2XY1E4[gardner][2],10000)
+    calib_target_name = "xy"
+  end
+
   if calib_target_name == "xy" then
-    -- FIXME this doesn't work correctly
     -- from xy to RGB target using inverse matrix
     --local xyz2rgb1E7 = {
     --  {32404542,-15371385,-4985314},
@@ -609,8 +617,8 @@ function apply_cal(R,G,B)
     --xyz2rgb = mat3x3int2float(xyz2rgb1E7,10000000)
     local illuminant_name = illuminant[illuminant.index]
     local m = mat3x3int2float(RGB2XYZ1E7[illuminant_name],10000000)
-    local x = fmath.new(calib_x,1000)
-    local y = fmath.new(calib_y,1000)
+    local x = cal_x
+    local y = cal_y
     local z = fmath.new(1,1) - x - y
     local Y = fmath.new(1,2) -- 1/2 = 0.5 = brightness
     local X = Y / y * x;
