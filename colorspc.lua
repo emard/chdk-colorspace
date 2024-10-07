@@ -339,8 +339,8 @@ function rgb2xyz(R,G,B)
   -- depends on standard viewpoint and light source
   -- Observer = 2°, Illuminant = D65
   local illuminant_name = illuminant[illuminant.index]
-  m = mat3x3int2float(RGB2XYZ1E7[illuminant_name], 10000000)
-  p = dotproduct(m,{R,G,B})
+  local m = mat3x3int2float(RGB2XYZ1E7[illuminant_name], 10000000)
+  local p = dotproduct(m,{R,G,B})
   return p[1],p[2],p[3] -- XYZ
 end
 -- ******** end color space conversion *********
@@ -587,12 +587,6 @@ function apply_cal(R,G,B)
   local base_chan = 2
 
   -- convert int's 0-999999 to float's 0-1
-  --local fcal_rgb = {{},{},{}}
-  --for i=1,3 do
-  --  for j=1,3 do
-  --    fcal_rgb[i][j]=fmath.new(cal_rgb[i][j], 1000000)
-  --  end
-  --end
   fcal_rgb = mat3x3int2float(cal_rgb,1000000)
 
   -- scale all values to produce 1000*calib_r, 1000*calib_g, 1000*calib_b
@@ -605,9 +599,26 @@ function apply_cal(R,G,B)
 
   local calib_target_name = calib_target[calib_target.index]
   -- print("target name", calib_target_name)
-  if target_name == "xy" then
+  if calib_target_name == "xy" then
+    -- FIXME this doesn't work correctly
+    -- from xy to RGB target using inverse matrix
+    --local xyz2rgb1E7 = {
+    --  {32404542,-15371385,-4985314},
+    --  {-9692660, 18760108,  415560},
+    --  {  556434,  2040259,10572272}}
+    --xyz2rgb = mat3x3int2float(xyz2rgb1E7,10000000)
+    local illuminant_name = illuminant[illuminant.index]
+    local m = mat3x3int2float(RGB2XYZ1E7[illuminant_name],10000000)
+    local x = fmath.new(calib_x,1000)
+    local y = fmath.new(calib_y,1000)
+    local z = fmath.new(1,1) - x - y
+    local Y = fmath.new(1,2) -- 1/2 = 0.5 = brightness
+    local X = Y / y * x;
+    local Z = Y / y * z;
+    target = dotproduct(matinv3x3(m),{X,Y,Z})
+    --target = dotproduct(xyz2rgb,{X,Y,Z})
   end
-  
+
   -- currently only max illumination values are used fcal[1][rgb]
   -- linear a*x+b
   -- currently b=0 always
