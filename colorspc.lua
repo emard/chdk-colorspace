@@ -620,7 +620,7 @@ function apply_cal(R,G,B)
     local x = cal_x
     local y = cal_y
     local z = fmath.new(1,1) - x - y
-    local Y = fmath.new(1,2) -- 1/2 = 0.5 = brightness
+    local Y = fmath.new(1,3) -- 1/3 = 0.333 = brightness
     local X = Y / y * x;
     local Z = Y / y * z;
     target = dotproduct(matinv3x3(m),{X,Y,Z})
@@ -629,12 +629,22 @@ function apply_cal(R,G,B)
 
   -- currently only max illumination values are used fcal[1][rgb]
   -- linear a*x+b
-  -- currently b=0 always
+  -- TODO parabolic 3-point interpolation
   local a = {}
   local b = {}
+  -- a*fcal_rgb[1][j]+b = target[j]
+  -- a*fcal_rgb[2][j]+b = target[j]/2
+  -- a*x1+b = t
+  -- a*x2+b = t/2
+  -- b = t-a*x1
+  -- a*x2+t-a*x1 = t/2
+  -- a*(x2-x1)+t = t/2
+  -- a*(x2-x1) = (1/2-1)*t
+  -- a*(x1-x2) = (1-1/2)*t
+  -- a = (1-1/2)*t/(x1-x2)
   for j=1,3 do
-    a[j] = target[j]/fcal_rgb[1][j] -- FIXME use all 3 calib illumin. levels
-    b[j] = fmath.new(0,1) -- currently 0, FIXME
+    a[j] = (fmath.new(1,1)-fmath.new(1,2))*target[j]/(fcal_rgb[1][j]-fcal_rgb[2][j])
+    b[j] = target[j]-a[j]*fcal_rgb[1][j]
   end
 
   R = R * a[1] + b[1]
