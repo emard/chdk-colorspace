@@ -2,7 +2,8 @@
 @title COLOR SPACE RGB->xyY (CIE)
 @chdk_version 1.6
 #calibrate=false "Calibrate"
-#calib_target=RGB "Calib target" {Gardner xyY RGB} table
+#calib_point=1 "Calib point" [1 3]
+#calib_target=xyY "Calib target" {Gardner xyY RGB} table
 #calib_r=200 "Calib Red"   [0 999]
 #calib_g=200 "Calib Green" [0 999]
 #calib_b=200 "Calib Blue"  [0 999]
@@ -311,7 +312,7 @@ function test_matinv3x3()
                 {0,2,4},
                 {1,1,2}}
   -- convert int to float
-  fmat = mat3x3int2float(imat,1)
+  local fmat = mat3x3int2float(imat,1)
   print("input matrix")
   printmat3x3(fmat)
   print("inverted matrix")
@@ -327,6 +328,44 @@ function dotproduct(m,v)
     p[i] = m[i][1]*v[1] + m[i][2]*v[2] + m[i][3]*v[3]
   end
   return p
+end
+
+-- input matrix 3x3, matrix 3x3
+-- output matrix 3x3
+-- p = a . b
+function dot3x3(a,b)
+  local p = {{},{},{}}
+  for i=1,3 do
+    for j=1,3 do
+      p[i][j] = a[i][1]*b[1][j] + a[i][2]*b[2][j] + a[i][3]*b[3][j]
+    end
+  end
+  return p
+end
+
+-- verify with maxima
+-- a:matrix([2,1,3],[0,2,4],[1,1,2]);
+-- b:matrix([1,4,1],[2,4,1],[2,1,3]);
+-- a . b;
+-- maxima -b examples/dotproduct.maxima
+-- [ 10  15  12 ]
+-- [ 12  12  14 ]
+-- [ 7   10  8  ]
+function test_dot3x3()
+  local ia   = {{2,1,3},
+                {0,2,4},
+                {1,1,2}}
+  local ib   = {{1,4,1},
+                {2,4,1},
+                {2,1,3}}
+  local a = mat3x3int2float(ia,1)
+  print("input matrix a")
+  printmat3x3(a)
+  local b = mat3x3int2float(ib,1)
+  print("input matrix b")
+  printmat3x3(b)
+  print("dot product a . b")
+  printmat3x3(dot3x3(a,b))
 end
 
 -- return im/scale
@@ -729,6 +768,7 @@ if enable_raw then
 end
 
 -- test_matinv3x3()
+-- test_dot3x3()
 -- print("press key")
 wait_click(0)
 
