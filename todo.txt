@@ -15,4 +15,8 @@
 [ ] calib point 1-3, set camera to M-manual
     each point replaces one row in calib matrix
 [ ] test are both green in rgbg develop to same green color
-[ ] dot product matrix . matrix
+[x] dot product matrix . matrix
+[ ] cal file should now be (int1E6, unfolded array)
+    R1 G1 B1 x1 y1 Y1
+    R2 G2 B2 x2 y2 Y2
+    R3 G3 B3 x3 y3 Y3

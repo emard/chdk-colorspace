@@ -563,12 +563,19 @@ end -- do_colorspace
 -- float's 0-1 are scaled as int's 0-1000000 (1E6)
 CALRGB1E6 =
 {
-  { 999999, 999999, 999999 }, -- RGB exposition 1/x
-  { 499999, 499999, 499999 }, -- RGB exposition 1/2x
-  {      0,      0,      0 }, -- RGB exposition 1/4x
+  { 999999, 999999, 999999 }, -- RGB point 1 exposition 1/x
+  { 499999, 499999, 499999 }, -- RGB point 2 exposition 1/2x
+  {      0,      0,      0 }, -- RGB point 3 exposition 1/4x
 }
 
--- file COLORCAL.TXT contains linearized CALRGB1E6 array
+CALxyY1E6 =
+{
+  { 333333, 333333, 333333 }, -- xyY point 1
+  { 333333, 333333, 333333 }, -- xyY point 2
+  { 333333, 333333, 333333 }, -- xyY point 3
+}
+
+-- file COLORCAL.TXT contains serialized CALRGB1E6 array
 -- example:
 -- 999999 -- R exp. 1/x
 -- 999999 -- G exp. 1/x
@@ -584,8 +591,9 @@ function write_cal_file()
   if calfile then
     for i=1,3 do
       for j=1,3 do
-        calfile:write(string.format("%d\n", CALRGB1E6[i][j]))
+        calfile:write(string.format("%d ", CALRGB1E6[i][j]))
       end
+      calfile:write("\n")
     end
     calfile:close()
     return true
@@ -599,6 +607,41 @@ function read_cal_file()
     for i=1,3 do
       for j=1,3 do
         CALRGB1E6[i][j] = calfile:read("*n")
+      end
+    end
+    calfile:close()
+    return true
+  end
+  return false
+end
+
+function write_rgb2xyy_file()
+  local calfile=io.open("A/rgb2xyy.txt","wb")
+  if calfile then
+    for i=1,3 do
+      for j=1,3 do
+        calfile:write(string.format("%d ", CALRGB1E6[i][j]))
+      end
+      for j=1,3 do
+        calfile:write(string.format("%d ", CALxyY1E6[i][j]))
+      end
+      calfile:write("\n")
+    end
+    calfile:close()
+    return true
+  end
+  return false
+end
+
+function read_rgb2xyy_file()
+  local calfile=io.open("A/rgb2xyy.txt","rb")
+  if calfile then
+    for i=1,3 do
+      for j=1,3 do
+        CALRGB1E6[i][j] = calfile:read("*n")
+      end
+      for j=1,3 do
+        CALxyY1E6[i][j] = calfile:read("*n")
       end
     end
     calfile:close()
