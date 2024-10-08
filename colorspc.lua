@@ -1,14 +1,14 @@
 --[[
-@title COLOR SPACE RGB->Yxy (CIE)
+@title COLOR SPACE RGB->xyY (CIE)
 @chdk_version 1.6
 #calibrate=false "Calibrate"
-#calib_target=RGB "Calib target" {Gardner Yxy RGB} table
+#calib_target=RGB "Calib target" {Gardner xyY RGB} table
 #calib_r=200 "Calib Red"   [0 999]
 #calib_g=200 "Calib Green" [0 999]
 #calib_b=200 "Calib Blue"  [0 999]
-#calib_Y=333 "Calib Y"  [0 999]
 #calib_x=333 "Calib x"  [0 999]
 #calib_y=333 "Calib y"  [0 999]
+#calib_Y=333 "Calib Y"  [0 999]
 #gardner=11 "Calib Gardner" [1 18]
 #illuminant=CIE_E "RGB_Illuminant" {Adobe_D65 Apple_D65 ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65 CIE_E} table
 #inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
@@ -416,10 +416,11 @@ function calculate_colorspace(use_cal)
   local CIE_X,CIE_Y,CIE_Z
   CIE_X,CIE_Y,CIE_Z = rgb2xyz(r,g,b)
 
-  -- from XYZ calculate xy
-  local CIE_x,CIE_y
+  -- from XYZ calculate xyz
+  local CIE_x,CIE_y,CIE_z
   CIE_x = CIE_X / (CIE_X+CIE_Y+CIE_Z)
   CIE_y = CIE_Y / (CIE_X+CIE_Y+CIE_Z)
+  CIE_z = CIE_Z / (CIE_X+CIE_Y+CIE_Z)
 
   -- draw RGB (color) digits right aligned on the left side
   -- local x_left = rawop.get_jpeg_left()+400
@@ -432,20 +433,21 @@ function calculate_colorspace(use_cal)
 
   -- draw xy (white) digits left aligned on the right side
   local x_right = x1+meter_size_x+font_p
-  draw_digits(x_right,y_top+font_nl*0,str1E3(CIE_Y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right,y_top+font_nl*1,str1E3(CIE_x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right,y_top+font_nl*2,str1E3(CIE_y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl*0,str1E3(CIE_x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl*1,str1E3(CIE_y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl*2,str1E3(CIE_Y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 
-  draw_digits(x_right+font_p*11/2,y_top+font_nl*0,"Y",font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right+font_p*11/2,y_top+font_nl*1+font_h/4,"X",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right+font_p*11/2,y_top+font_nl*2+font_h/4,"Y",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
+  -- font size calc for lowercase "xy" and uppercase "Y"
+  draw_digits(x_right+font_p*11/2,y_top+font_nl*0+font_h/4,"X",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right+font_p*11/2,y_top+font_nl*1+font_h/4,"Y",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right+font_p*11/2,y_top+font_nl*2,"Y",font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 
   set_console_layout(0,0,40,12)
   --printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
   --printf("gardner %d: x=0.%d y=0.%d", gardner, GARDNER2XY1E4[gardner][1], GARDNER2XY1E4[gardner][2] )
   --printf("black=%d white=%d", min_level, max_level)
   printf("R=%s G=%s B=%s",str1E3(r,6),str1E3(g,6),str1E3(b,6))
-  printf("Y=%s x=%s y=%s (CIE)",str1E3(CIE_Y,6),str1E3(CIE_x,6),str1E3(CIE_y,6))
+  printf("x=%s y=%s Y=%s (CIE)",str1E3(CIE_x,6),str1E3(CIE_y,6),str1E3(CIE_Y,6))
   --logfile=io.open("A/colorspc.log","wb")
   --logfile:write(string.format("illuminant = >>%s<<\n", illuminant[illuminant.index]))
   --logfile:write(string.format("meter r=%d g1=%d g2=%d b=%d\n",r,g1,g2,b))
@@ -611,10 +613,10 @@ function apply_cal(R,G,B)
     cal_x = fmath.new(GARDNER2XY1E4[gardner][1],10000)
     cal_y = fmath.new(GARDNER2XY1E4[gardner][2],10000)
     cal_Y = fmath.new(GARDNER2XY1E4[gardner][3],10000)
-    calib_target_name = "Yxy"
+    calib_target_name = "xyY"
   end
 
-  if calib_target_name == "Yxy" then
+  if calib_target_name == "xyY" then
     -- from xy to RGB target using inverse matrix
     --local xyz2rgb1E7 = {
     --  {32404542,-15371385,-4985314},
