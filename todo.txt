@@ -10,3 +10,5 @@
 [ ] check light intensity to sensor reading relation
     (lamp away sqrt(2)x = 1.41x should make brigtness 1/2x)
     (2 lamps and 1 lamp, brightness 1/2x)
+[ ] simple bracketing example
+[ ] 48->96 to reduce brightness by 2
