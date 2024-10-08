@@ -10,7 +10,7 @@
 #calib_y=333 "Calib y"  [0 999]
 #calib_Y=333 "Calib Y"  [0 999]
 #gardner=11 "Calib Gardner" [1 18]
-#illuminant=CIE_E "RGB_Illuminant" {Adobe_D65 Apple_D65 ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65 CIE_E} table
+#illuminant=CIE_E "RGB_Illuminant" {Adobe_D65 Apple_D65 ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 REC709 sRGB_D65 CIE_E} table
 #inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
@@ -255,6 +255,12 @@ RGB2XYZ1E7 =
     {4124564,  3575761,  1804375},
     {2126729,  7151522,   721750},
     { 193339,  1191920,  9503041},
+  },
+  ["REC709"] = -- similar to sRGB_D65 https://community.intel.com/t5/Intel-Integrated-Performance/RGB-to-XYZ/td-p/1144785
+  {
+    {4124530,  3575800,  1804230},
+    {2126710,  7151600,   721690},
+    { 193340,  1191930,  9502270},
   },
   ["SMPTEC_D65"] = -- SMPTE-C, D65
   {
