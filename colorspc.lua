@@ -138,6 +138,7 @@ end -- 7-segment display
 -- **** begin color reference tables ***
 -- gardner is standard for shades of yellow
 -- https://www.shimadzu.com/an/sites/shimadzu.com.an/files/pim/pim_document_file/applications/application_note/13384/sia116002.pdf
+-- https://www.kelid1.ir/FilesUp/ASTM_STANDARS_971222/D6166.PDF
 -- Y values from above table are considered as % brightness
 -- in our table Y is scaled to 0-1
 GARDNER2XY1E4 =
@@ -150,7 +151,7 @@ GARDNER2XY1E4 =
   {3767,4061,7100}, -- 6
   {4044,4352,6700}, -- 7
   {4207,4498,6400}, -- 8
-  {4340,4640,6100}, -- 9
+  {4343,4640,6100}, -- 9
   {4503,4760,5700}, -- 10
   {4842,4818,4500}, -- 11
   {5077,4638,3600}, -- 12
@@ -643,8 +644,9 @@ function apply_cal(R,G,B)
   -- a*(x1-x2) = (1-1/2)*t
   -- a = (1-1/2)*t/(x1-x2)
   -- a = (1-1/4)*t/(x1-x3)
+  -- a = (1-1/2)*t/(x1-x3) -- or maybe this
   for j=1,3 do
-    a[j] = (fmath.new(1,1)-fmath.new(1,2))*target[j]/(fcal_rgb[1][j]-fcal_rgb[2][j])
+    a[j] = (fmath.new(1,1)-fmath.new(1,2))*target[j]/(fcal_rgb[1][j]-fcal_rgb[3][j])
     b[j] = target[j]-a[j]*fcal_rgb[1][j]
   end
 
