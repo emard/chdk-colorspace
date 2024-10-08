@@ -7,3 +7,6 @@
 [ ] raw sensor probably have some gamma, experimental
     exposure: 1/x   1/2x  1/4x
     readings: 0.150 0.110 0.077
+[ ] check light intensity to sensor reading relation
+    (lamp away sqrt(2)x = 1.41x should make brigtness 1/2x)
+    (2 lamps and 1 lamp, brightness 1/2x)
