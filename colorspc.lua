@@ -2,12 +2,13 @@
 @title COLOR SPACE RGB->XY (CIE)
 @chdk_version 1.6
 #calibrate=false "Calibrate"
-#calib_target=RGB "Calib target" {Gardner xy RGB} table
+#calib_target=RGB "Calib target" {Gardner xyY RGB} table
 #calib_r=200 "Calib Red"   [0 999]
 #calib_g=200 "Calib Green" [0 999]
 #calib_b=200 "Calib Blue"  [0 999]
 #calib_x=333 "Calib x"  [0 999]
 #calib_y=333 "Calib y"  [0 999]
+#calib_Y=333 "Calib Y"  [0 999]
 #gardner=11 "Calib Gardner" [1 18]
 #illuminant=CIE_E "RGB_Illuminant" {Adobe_D65 Apple_D65 ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 sRGB_D65 CIE_E} table
 #inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
@@ -137,26 +138,28 @@ end -- 7-segment display
 -- **** begin color reference tables ***
 -- gardner is standard for shades of yellow
 -- https://www.shimadzu.com/an/sites/shimadzu.com.an/files/pim/pim_document_file/applications/application_note/13384/sia116002.pdf
+-- Y values from above table are considered as % brightness
+-- in our table Y is scaled to 0-1
 GARDNER2XY1E4 =
-{
-  {3177,3303}, -- 1
-  {3233,3352}, -- 2
-  {3329,3452}, -- 3
-  {3437,3644}, -- 4
-  {3558,3840}, -- 5
-  {3767,4061}, -- 6
-  {4044,4352}, -- 7
-  {4207,4498}, -- 8
-  {4340,4640}, -- 9
-  {4503,4760}, -- 10
-  {4842,4818}, -- 11
-  {5077,4638}, -- 12
-  {5392,4458}, -- 13
-  {5646,4270}, -- 14
-  {5857,4089}, -- 15
-  {6047,3921}, -- 16
-  {6290,3701}, -- 17
-  {6477,3521}, -- 18
+{ --  x    y    Y *1E4
+  {3177,3303,8000}, -- 1
+  {3233,3352,7900}, -- 2
+  {3329,3452,7600}, -- 3
+  {3437,3644,7500}, -- 4
+  {3558,3840,7400}, -- 5
+  {3767,4061,7100}, -- 6
+  {4044,4352,6700}, -- 7
+  {4207,4498,6400}, -- 8
+  {4340,4640,6100}, -- 9
+  {4503,4760,5700}, -- 10
+  {4842,4818,4500}, -- 11
+  {5077,4638,3600}, -- 12
+  {5392,4458,3000}, -- 13
+  {5646,4270,2200}, -- 14
+  {5857,4089,1600}, -- 15
+  {6047,3921,1100}, -- 16
+  {6290,3701, 600}, -- 17
+  {6477,3521, 400}, -- 18
 }
 -- **** end color reference tables ***
 
@@ -574,7 +577,6 @@ end
 
 -- convert input RGB (0-99999)
 -- to calibrated RGB values using CALRGB1E6
--- TODO test does this function even work
 -- TODO parabolic 3-point interpolation
 -- input  R,G,B float's 0-1
 -- output R,G,B float's 0-1
@@ -593,6 +595,7 @@ function apply_cal(R,G,B)
   -- print("target name", calib_target_name)
   local cal_x = fmath.new(calib_x,1000)
   local cal_y = fmath.new(calib_y,1000)
+  local cal_Y = fmath.new(calib_Y,1000)
 
   -- calibration target is Gardner disc
   -- place transparent color in front of camera lens
@@ -600,10 +603,11 @@ function apply_cal(R,G,B)
   if calib_target_name == "Gardner" then
     cal_x = fmath.new(GARDNER2XY1E4[gardner][1],10000)
     cal_y = fmath.new(GARDNER2XY1E4[gardner][2],10000)
-    calib_target_name = "xy"
+    cal_Y = fmath.new(GARDNER2XY1E4[gardner][3],10000)
+    calib_target_name = "xyY"
   end
 
-  if calib_target_name == "xy" then
+  if calib_target_name == "xyY" then
     -- from xy to RGB target using inverse matrix
     --local xyz2rgb1E7 = {
     --  {32404542,-15371385,-4985314},
@@ -615,7 +619,7 @@ function apply_cal(R,G,B)
     local x = cal_x
     local y = cal_y
     local z = fmath.new(1,1) - x - y
-    local Y = fmath.new(1,3) -- 1/3 = 0.333 = brightness
+    local Y = cal_Y
     local X = Y / y * x;
     local Z = Y / y * z;
     target = dotproduct(matinv3x3(m),{X,Y,Z})
