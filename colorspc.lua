@@ -378,6 +378,44 @@ function transpose3x3(a)
   return b
 end
 
+-- input values from sensor RGB =
+-- [R1 G1 B1]
+-- [R2 G2 B2]
+-- [R3 G3 B3]
+-- input calibration targets XYZ =
+-- [X1 Y1 Z1]
+-- [X2 Y2 Z2]
+-- [X3 Y3 Z3]
+-- output conversion matrix RGB->XYZ
+function solve_RGB2XYZ(RGB,XYZ)
+  return transpose3x3(dot3x3(matinv3x3(RGB),XYZ))
+end
+
+-- verify with maxima
+-- a:matrix([1,2,-1],[3,1,2],[2,2,1]);
+-- b:matrix([1,2,3],[3,2,-1],[1,3,4]);
+-- xt:transpose(expand(invert(a) . b));
+-- maxima -b examples/matrix_lin_eq.maxima
+-- [  2   -1   -1   ]
+-- [ -0.2  1.4  0.6 ]
+-- [ -3    4    2   ]
+function test_RGB2XYZ()
+  local ia   = {{1,2,-1},
+                {3,1,2},
+                {2,2,1}}
+  local ib   = {{1,2,3},
+                {3,2,-1},
+                {1,3,4}}
+  local a = mat3x3int2float(ia,1)
+  print("input matrix RGB")
+  printmat3x3(a)
+  local b = mat3x3int2float(ib,1)
+  print("input matrix XYZ")
+  printmat3x3(b)
+  print("transform RGB->XYZ")
+  printmat3x3(solve_RGB2XYZ(a,b))
+end
+
 -- return im/scale
 function mat3x3int2float(im,scale)
   local m = {{},{},{}}
@@ -779,6 +817,7 @@ end
 
 -- test_matinv3x3()
 -- test_dot3x3()
+-- test_RGB2XYZ()
 -- print("press key")
 wait_click(0)
 
