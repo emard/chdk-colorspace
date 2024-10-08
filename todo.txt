@@ -13,4 +13,6 @@
 [ ] simple bracketing example
 [ ] 48->96 to reduce brightness by 2
 [ ] calib point 1-3, set camera to M-manual
+    each point replaces one row in calib matrix
 [ ] test are both green in rgbg develop to same green color
+[ ] dot product matrix . matrix
