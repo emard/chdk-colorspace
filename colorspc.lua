@@ -368,6 +368,16 @@ function test_dot3x3()
   printmat3x3(dot3x3(a,b))
 end
 
+function transpose3x3(a)
+  local b = {{},{},{}}
+  for i=1,3 do
+    for j=1,3 do
+      b[i][j] = a[j][i]
+    end
+  end
+  return b
+end
+
 -- return im/scale
 function mat3x3int2float(im,scale)
   local m = {{},{},{}}
