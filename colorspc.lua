@@ -3,21 +3,15 @@
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
-#calib_target=xyY "Calib target" {Gardner xyY RGB} table
-#calib_r=200 "Calib Red"   [0 999]
-#calib_g=200 "Calib Green" [0 999]
-#calib_b=200 "Calib Blue"  [0 999]
+#calib_target=xyY "Calib target" {Gardner xyY} table
+#gardner=11 "Calib Gardner" [1 18]
 #calib_x=333 "Calib x"  [0 999]
 #calib_y=333 "Calib y"  [0 999]
 #calib_Y=333 "Calib Y"  [0 999]
-#gardner=11 "Calib Gardner" [1 18]
-#illuminant=CIE_E "RGB_Illuminant" {Adobe_D65 Apple_D65 ColorMatch_D50 ECI_D50 Ekta_D50 ProPhoto_D50 SMPTEC_D65 REC709 sRGB_D65 CIE_E} table
-#inverse_gamma=None "Inverse gamma" {REC709 sRGB None} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #font_h=200 "Font height" [10 1000]
 #enable_raw=false "Enable raw"
-#shots=1 "Shots" -- number of successive shots
 ]]
 
 -- for known camera it is recommended to
@@ -27,7 +21,7 @@
 -- illuminant="CIE_E"
 -- inverse_gamma="None"
 
--- shots=1 -- hardcode always 1 shot
+shots=1 -- hardcode always 1 shot
 
 -- white is CIE x=0.333 y=0.333
 
@@ -164,112 +158,6 @@ GARDNER2XY1E4 =
   {6477,3521, 400}, -- 18
 }
 -- **** end color reference tables ***
-
--- **** begin inverse gamma ***
-IGAMMA1E5 =
-{ --            div_lin  thresh   add     div     pow
-  ["None"]   = { 100000, 100000,    0, 100000, 100000  },
-  ["sRGB"]   = {1292000,   4045, 5500, 105500, 240000  },
-  ["REC709"] = { 450000,   8100, 9900, 109900, 222222  },
-}
-
--- inverse gamma
--- some image sensor may apply gamma function.
--- 3 different exposure bracketings should produce same xy
--- experimentally it is found that for SX280HS camera
--- "None" inverse gamma function fits best for same xy
--- for different exposure and/or light intensity.
--- this function should remove gamma and returns linear RGB
--- input  gamma RGB (float 0-1) (128-4095 should be scaled to 0-1)
--- output linear RGB (float 0-1)
-function invgamma(var)
-  -- https://en.wikipedia.org/wiki/SRGB
-  -- is this non-linear to linear formula (inverse)?
-  -- see for Rec.709: https://en.wikipedia.org/wiki/Rec._709
-  local inverse_gamma_name = inverse_gamma[inverse_gamma.index]
-  local gama_div1   =  fmath.new(IGAMMA1E5[inverse_gamma_name][1],100000) -- 12.92
-  local gama_thresh =  fmath.new(IGAMMA1E5[inverse_gamma_name][2],100000) --  0.04045
-  local gama_add    =  fmath.new(IGAMMA1E5[inverse_gamma_name][3],100000) --  0.05500
-  local gama_div    =  fmath.new(IGAMMA1E5[inverse_gamma_name][4],100000) --  1.055
-  local gama_pow    =  fmath.new(IGAMMA1E5[inverse_gamma_name][5],100000) --  2.400
-
-  if var > gama_thresh then
-    var = ((var + gama_add) / gama_div) ^ gama_pow
-  else
-    var = var / gama_div1
-  end
-
-  return var
-end
--- **** end inverse gamma coefficiens ***
-
--- **** begin color space conversion ****
--- conversion matrix
--- various colorspaces and illuminators
--- from http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-RGB2XYZ1E7 =
-{
-  ["Adobe_D65"] = -- Adobe RGB (1998), D65
-  {
-    {5767309,  1855540,  1881852},
-    {2973769,  6273491,   752741},
-    { 270343,   706872,  9911085},
-  },
-  ["Apple_D65"] = -- Apple RGB, D65
-  {
-    {4497288,  3162486,  1844926},
-    {2446525,  6720283,   833192},
-    { 251848,  1411824,  9224628},
-  },
-  ["CIE_E"] = -- CIE RGB, E
-  {
-    {4887180,  3106803,  2006017},
-    {1762044,  8129847,   108109},
-    {      0,   102048,  9897952},
-  },
-  ["ColorMatch_D50"] = -- ColorMatch RGB, D50
-  {
-    {5093439,  3209071,  1339691},
-    {2748840,  6581315,   669845},
-    { 242545,  1087821,  6921735},
-  },
-  ["ECI_D50"] = -- ECI RGB, D50
-  {
-    {6502043,  1780774,  1359384},
-    {3202499,  6020711,   776791},
-    {      0,   678390,  7573710},
-  },
-  ["Ekta_D50"] = -- EktaSpace PS5, D50
-  {
-    {5938914,  2729801,   973485},
-    {2606286,  7349465,    44249},
-    {      0,   419969,  7832131},
-  },
-  ["ProPhoto_D50"] = -- ProPhoto, D50
-  {
-    {7976749,  1351917,   313534},
-    {2880402,  7118741,      857},
-    {      0,        0,  8252100},
-  },
-  ["sRGB_D65"] = -- sRGB, D65 https://en.wikipedia.org/wiki/SRGB
-  {
-    {4124564,  3575761,  1804375},
-    {2126729,  7151522,   721750},
-    { 193339,  1191920,  9503041},
-  },
-  ["REC709"] = -- similar to sRGB_D65 https://community.intel.com/t5/Intel-Integrated-Performance/RGB-to-XYZ/td-p/1144785
-  {
-    {4124530,  3575800,  1804230},
-    {2126710,  7151600,   721690},
-    { 193340,  1191930,  9502270},
-  },
-  ["SMPTEC_D65"] = -- SMPTE-C, D65
-  {
-    {3935891,  3652497,  1916313},
-    {2124132,  7010437,   865432},
-    { 187423,  1119313,  9581563},
-  },
-}
 
 -- computes the inverse of a matrix m
 -- input float matrix 3x3
@@ -426,20 +314,6 @@ function mat3x3int2float(im,scale)
   end
   return m
 end
-
--- colorspace conversion formula
--- input RGB fmath 0-1
--- output XYZ fmath 0-1
-function rgb2xyz(R,G,B)
-  -- conversion matrix
-  -- see http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-  -- depends on standard viewpoint and light source
-  -- Observer = 2°, Illuminant = D65
-  local illuminant_name = illuminant[illuminant.index]
-  local m = mat3x3int2float(RGB2XYZ1E7[illuminant_name], 10000000)
-  local p = dotproduct(m,{R,G,B})
-  return p[1],p[2],p[3] -- XYZ
-end
 -- ******** end color space conversion *********
 
 
@@ -448,7 +322,7 @@ end
 -- temporary display on screen
 -- markings on saved picture
 -- TODO if use_cal==true then apply calibration using CALRGB1E6
-function calculate_colorspace(use_cal)
+function calculate_colorspace()
   -- local font_h  = 200        -- digit height Y taken from script arguments
   local font_w  = font_h/2   -- digit width X
   local font_p  = font_h*3/4 -- pitch (column width) X
@@ -486,14 +360,12 @@ function calculate_colorspace(use_cal)
   i_b  = (b-min_level)
   local i_range = max_level-min_level
 
-  -- float rgb range 0-1
+  -- int rgb to float rgb range 0-1
   local r,g,b
-  r = invgamma(fmath.new(i_r,i_range)) -- i_r / i_range
-  g = invgamma(fmath.new(i_g,i_range)) -- i_g / i_range
-  b = invgamma(fmath.new(i_b,i_range)) -- i_b / i_range
+  r = fmath.new(i_r,i_range) -- i_r / i_range
+  g = fmath.new(i_g,i_range) -- i_g / i_range
+  b = fmath.new(i_b,i_range) -- i_b / i_range
 
-  -- TODO should calibration be applied before gamma?
-  -- for inverse_gamma = "None" it doesn't matter is it before or after.
   -- apply calibration
   local CIE_x,CIE_y,CIE_Y
   CIE_x,CIE_y,CIE_Y = apply_cal_RGB2xyY(r,g,b)
@@ -557,46 +429,6 @@ CALxyY1E6 =
   { 333333, 333333, 333333 }, -- xyY point 2
   { 333333, 333333, 333333 }, -- xyY point 3
 }
-
--- file COLORCAL.TXT contains serialized CALRGB1E6 array
--- example:
--- 999999 -- R exp. 1/x
--- 999999 -- G exp. 1/x
--- 999999 -- B exp. 1/x
--- 499999 -- R exp. 1/2x
--- 499999 -- G exp. 1/2x
--- 499999 -- B exp. 1/2x
---      0 -- R exp. 1/4x
---      0 -- G exp. 1/4x
---      0 -- B exp. 1/4x
-function write_cal_file()
-  local calfile=io.open("A/colorcal.txt","wb")
-  if calfile then
-    for i=1,3 do
-      for j=1,3 do
-        calfile:write(string.format("%d ", CALRGB1E6[i][j]))
-      end
-      calfile:write("\n")
-    end
-    calfile:close()
-    return true
-  end
-  return false
-end
-
-function read_cal_file()
-  local calfile=io.open("A/colorcal.txt","rb")
-  if calfile then
-    for i=1,3 do
-      for j=1,3 do
-        CALRGB1E6[i][j] = calfile:read("*n")
-      end
-    end
-    calfile:close()
-    return true
-  end
-  return false
-end
 
 function write_rgb2xyy_file()
   local calfile=io.open("A/rgb2xyy.txt","wb")
@@ -719,163 +551,11 @@ function calib_rgb2xyy()
       CALxyY1E6[calib_point][i] = GARDNER2XY1E4[gardner][i]*100
     end
   end
-
   if write_rgb2xyy_file() then
     printf("rgb2xyy.txt point %d wr", calib_point)
   else
     print("rgb2xyy.txt error write")
   end
-end
-
-function calibration()
-  press('shoot_half')
-  repeat sleep(10) until get_shooting()
-  afl_av=get_av96()
-  afl_sv=get_sv96()
-  afl_tv=get_tv96()
-  release('shoot_half')
-  -- set_aflock(1) -- focus lock - no more change of the focus
-
-  CALRGB1E6={{},{},{}} -- we will get here bracketed values
-  for i=1,3 do -- 3 shots for bracketing
-    shoot() -- fix this more elegant way
-    -- with shoot() for 3 loops we get 6 pics.
-    -- first pic without 7-seg numbers and second with 7-seg numbers.
-    -- all pics can be erased later.
-    -- For calibration this is usually not a big drawback.
-    -- without shoot() tv value is set for the first time
-    -- but subsequent shots with hooks will ignore it
-    -- must be a better way to do bracketing with raw hooks
-    -- tv96 -- exposure time, logarithmic
-    -- when adding 48 then exposition time 2 times shorter (faster)
-    -- and picture is dimmer
-    set_tv96_direct(afl_tv+((i-1)*48))
-    set_sv96(afl_sv)
-    set_av96(afl_av)
-
-    -- sleep(200)
-    -- set hook in raw for drawing
-    hook_raw.set(10000)
-    press('shoot_half')
-    repeat sleep(10) until get_shooting()
-    -- sleep(200)
-    press('shoot_full_only')
-
-    -- wait for the image to be captured
-    hook_raw.wait_ready()
-
-    local count, ms = set_yield(-1,-1)
-    -- get sensor values without calibration thus (false) argument
-    r,g,b = calculate_colorspace(false)
-    -- convert float's to int's
-    CALRGB1E6[i][1], CALRGB1E6[i][2], CALRGB1E6[i][3] = (r*1000000):int(),(g*1000000):int(),(b*1000000):int()
-    set_yield(count, ms)
-
-    hook_raw.continue()
-    release('shoot_full_only')
-    release('shoot_half')
-    hook_raw.set(0)
-    -- set_aflock(0)
-    -- sleep(1900)
-  end -- for shots
-
-  -- restore values
-  set_tv96(afl_tv)
-  set_sv96(afl_sv)
-  set_av96(afl_av)
-  set_aflock(0)
-
-  -- now we have all the sensor values ready in CALRGB1E6[1..3][1..3]
-  -- CALRGB1E6[number_of_shots][1-red, 2-green, 3-blue]
-  -- we can interpolate them for a white balance
-  -- R,G,B = apply_cal(CALRGB1E6[1][1], CALRGB1E6[1][2], CALRGB1E6[1][3])
-  -- write calib data to file
-  if write_cal_file() then
-    print("colorcal.txt written")
-  else
-    print("colorcal.txt write error")
-  end
-end
-
--- convert input RGB (0-99999)
--- to calibrated RGB values using CALRGB1E6
--- TODO parabolic 3-point interpolation
--- input  R,G,B float's 0-1
--- output R,G,B float's 0-1
-function apply_cal_old(R,G,B)
-  -- convert int's 0-999999 to float's 0-1
-  fcal_rgb = mat3x3int2float(CALRGB1E6,1000000)
-
-  -- reference calibration target color is given as script parameters
-  -- convert from RGB int's 0-999 to float's 0-1
-  local target = {}
-  target[1] = fmath.new(calib_r,1000)
-  target[2] = fmath.new(calib_g,1000)
-  target[3] = fmath.new(calib_b,1000)
-
-  local calib_target_name = calib_target[calib_target.index]
-  -- print("target name", calib_target_name)
-  local cal_x = fmath.new(calib_x,1000)
-  local cal_y = fmath.new(calib_y,1000)
-  local cal_Y = fmath.new(calib_Y,1000)
-
-  -- calibration target is Gardner disc
-  -- place transparent color in front of camera lens
-  -- and point camera to white paper
-  if calib_target_name == "Gardner" then
-    cal_x = fmath.new(GARDNER2XY1E4[gardner][1],10000)
-    cal_y = fmath.new(GARDNER2XY1E4[gardner][2],10000)
-    cal_Y = fmath.new(GARDNER2XY1E4[gardner][3],10000)
-    calib_target_name = "xyY"
-  end
-
-  if calib_target_name == "xyY" then
-    -- from xy to RGB target using inverse matrix
-    --local xyz2rgb1E7 = {
-    --  {32404542,-15371385,-4985314},
-    --  {-9692660, 18760108,  415560},
-    --  {  556434,  2040259,10572272}}
-    --xyz2rgb = mat3x3int2float(xyz2rgb1E7,10000000)
-    local illuminant_name = illuminant[illuminant.index]
-    local m = mat3x3int2float(RGB2XYZ1E7[illuminant_name],10000000)
-    local x = cal_x
-    local y = cal_y
-    local z = fmath.new(1,1) - x - y
-    local Y = cal_Y
-    local X = Y / y * x;
-    local Z = Y / y * z;
-    target = dotproduct(matinv3x3(m),{X,Y,Z})
-    --target = dotproduct(xyz2rgb,{X,Y,Z})
-  end
-
-  -- currently only 1st and 2nd bracketing values are used
-  -- for linear interpolation a*x+b
-  -- TODO parabolic 3-point interpolation a*x*x+b*x+c
-  local a = {}
-  local b = {}
-  -- a*fcal_rgb[1][j]+b = target[j]
-  -- a*fcal_rgb[2][j]+b = target[j]/2
-  -- a*fcal_rgb[3][j]+b = target[j]/4
-  -- a*x1+b = t
-  -- a*x2+b = t/2
-  -- b = t-a*x1
-  -- a*x2+t-a*x1 = t/2
-  -- a*(x2-x1)+t = t/2
-  -- a*(x2-x1) = (1/2-1)*t
-  -- a*(x1-x2) = (1-1/2)*t
-  -- a = (1-1/2)*t/(x1-x2)
-  -- a = (1-1/4)*t/(x1-x3)
-  -- a = (1-1/2)*t/(x1-x3) -- or maybe this
-  for j=1,3 do
-    a[j] = (fmath.new(1,1)-fmath.new(1,2))*target[j]/(fcal_rgb[1][j]-fcal_rgb[3][j])
-    b[j] = target[j]-a[j]*fcal_rgb[1][j]
-  end
-
-  R = R * a[1] + b[1]
-  G = G * a[2] + b[2]
-  B = B * a[3] + b[3]
-
-  return R,G,B
 end
 
 -- floats 0-1
@@ -907,20 +587,24 @@ function apply_cal_RGB2xyY(R,G,B)
     X,Y,Z = xyY2XYZ(fcal_xyY[i][1],fcal_xyY[i][2],fcal_xyY[i][3])
     fcal_XYZ[i] = {X,Y,Z}
   end
+  --print("cal RGB")
+  --printmat3x3(fcal_RGB)
+  --print("cal xyY")
+  --printmat3x3(fcal_xyY)
   -- solve eq (matrix inversion)
   local RGB2XYZ = solve_RGB2XYZ(fcal_RGB, fcal_XYZ)
-  X,Y,Z = dotproduct(RGB2XYZ,{R,G,B})
+  local XYZ = dotproduct(RGB2XYZ,{R,G,B})
   -- convert XYZ to xyY
-  return XYZ2xyY(X,Y,Z)
+  return XYZ2xyY(XYZ[1],XYZ[2],XYZ[3])
 end
 -- **** end calibration ****
 
 -- **** begin colorimetry, normal operation ****
 function colorimetry()
-  if read_cal_file() then
-    print("colorcal.txt read")
+  if read_rgb2xyy_file() then
+    print("rgb2xyy.txt read")
   else
-    print("colorcal.txt not found")
+    print("rgb2xyy.txt not found")
   end
   for i=1,shots do
     hook_raw.set(10000)
@@ -933,7 +617,7 @@ function colorimetry()
 
     local count, ms = set_yield(-1,-1)
     -- sensor values with calibration
-    calculate_colorspace(true)
+    calculate_colorspace()
 
     set_yield(count, ms)
     hook_raw.continue()
@@ -961,7 +645,6 @@ end
 --fails=0
 
 if calibrate then
-  --calibration()
   calib_rgb2xyy()
 else
   colorimetry(true)
