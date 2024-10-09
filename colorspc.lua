@@ -455,8 +455,8 @@ function calculate_colorspace(use_cal)
   local font_t  = font_h/10  -- segment line thickness
   local font_nl = font_h*3/2 -- line (row width) Y
 
-  min_level = rawop.get_black_level() --  128
-  max_level = rawop.get_white_level() -- 4095
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
 
   -- centered 500 px square (from parameters)
   --local meter_size_x = 500
@@ -648,6 +648,72 @@ function read_rgb2xyy_file()
     return true
   end
   return false
+end
+
+-- return r,g,b floats
+function measure_rgb()
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
+
+  -- centered 500 px square (from parameters)
+  --local meter_size_x = 500
+  --local meter_size_y = 400
+
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+
+  local r,g1,b,g2 = rawop.meter_rgbg(x1,y1,meter_size_x/2,meter_size_y/2,2,2)
+  print(string.format("r=%d g1=%d g2=%d b=%d",r,g1,g2,b))
+  fr = fmath.new(        r-min_level,max_level-min_level)
+  fg = fmath.new((g1+g2)/2-min_level,max_level-min_level)
+  fb = fmath.new(        b-min_level,max_level-min_level)
+
+  return fr,fg,fb
+end
+
+function draw_meter_square()
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+  -- draw white rectangle around metered area
+  rawop.rect_rgbg(x1-2,y1-2,meter_size_x+4,meter_size_y+4,2,max_level,max_level,max_level)
+  -- draw small coloured boxes at 4 corners of metered area
+  --rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
+  --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
+  --rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
+  --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
+end
+
+-- shoot, measure and optionally draw
+-- measured rectangular area on the image
+-- saves the image with drawing on SD card
+-- returns float r,g,b
+function shoot_measure_draw(draw)
+  hook_raw.set(10000)
+  press('shoot_half')
+  repeat sleep(10) until get_shooting()
+  press('shoot_full_only')
+  -- wait for the image to be captured
+  hook_raw.wait_ready()
+  local count, ms = set_yield(-1,-1)
+  -- read raw sensor values
+  local r,g,b
+  r,g,b=measure_rgb()
+  if draw then
+    draw_meter_square()
+  end
+  set_yield(count, ms)
+  hook_raw.continue()
+  release('shoot_full_only')
+  release('shoot_half')
+  hook_raw.set(0)
+  return r,g,b
+end
+
+function calib_rgb2xyz()
+  r,g,b=shoot_measure_draw(true)
+  print(str1E3(r,7) .. str1E3(g,7) .. str1E3(b,7))
 end
 
 function calibration()
@@ -848,7 +914,8 @@ end
 --fails=0
 
 if calibrate then
-  calibration()
+  --calibration()
+  calib_rgb2xyz()
 else
   colorimetry(true)
 end
