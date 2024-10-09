@@ -495,25 +495,8 @@ function calculate_colorspace(use_cal)
   -- TODO should calibration be applied before gamma?
   -- for inverse_gamma = "None" it doesn't matter is it before or after.
   -- apply calibration
-  if use_cal then
-    r,g,b = apply_cal(r,g,b)
-  end
-
-  -- fixed rgb value for debugging
-  -- For Illuminant "CIE_E" and r=g=b=0.5
-  -- CIE values should be x=0.333 y=0.333
-  --r=fmath.new(1,2) -- 1/2 = 0.5
-  --g=r
-  --b=r
-
-  local CIE_X,CIE_Y,CIE_Z
-  CIE_X,CIE_Y,CIE_Z = rgb2xyz(r,g,b)
-
-  -- from XYZ calculate xyz
-  local CIE_x,CIE_y,CIE_z
-  CIE_x = CIE_X / (CIE_X+CIE_Y+CIE_Z)
-  CIE_y = CIE_Y / (CIE_X+CIE_Y+CIE_Z)
-  CIE_z = CIE_Z / (CIE_X+CIE_Y+CIE_Z)
+  local CIE_x,CIE_y,CIE_Y
+  CIE_x,CIE_y,CIE_Y = apply_cal_RGB2xyY(r,g,b)
 
   -- draw RGB (color) digits right aligned on the left side
   -- local x_left = rawop.get_jpeg_left()+400
@@ -819,7 +802,7 @@ end
 -- TODO parabolic 3-point interpolation
 -- input  R,G,B float's 0-1
 -- output R,G,B float's 0-1
-function apply_cal(R,G,B)
+function apply_cal_old(R,G,B)
   -- convert int's 0-999999 to float's 0-1
   fcal_rgb = mat3x3int2float(CALRGB1E6,1000000)
 
@@ -893,6 +876,42 @@ function apply_cal(R,G,B)
   B = B * a[3] + b[3]
 
   return R,G,B
+end
+
+-- floats 0-1
+function xyY2XYZ(x,y,Y)
+  local z = fmath.new(1,1) - x - y
+  local X = Y / y * x;
+  local Z = Y / y * z;
+  return X,Y,Z
+end
+
+-- floats 0-1
+function XYZ2xyY(X,Y,Z)
+  local x = X/(X+Y+Z)
+  local y = Y/(X+Y+Z)
+  local z = Z/(X+Y+Z)
+  return x,y,Y
+end
+
+-- input  R,G,B float's 0-1
+-- output x,y,Y float's 0-1
+function apply_cal_RGB2xyY(R,G,B)
+  -- convert int's 0-999999 to float's 0-1
+  local fcal_RGB = mat3x3int2float(CALRGB1E6,1000000)
+  local fcal_xyY = mat3x3int2float(CALxyY1E6,1000000)
+  local fcal_XYZ = {{},{},{}}
+  -- convert xyY to XYZ
+  local X,Y,Z
+  for i=1,3 do
+    X,Y,Z = xyY2XYZ(fcal_xyY[i][1],fcal_xyY[i][2],fcal_xyY[i][3])
+    fcal_XYZ[i] = {X,Y,Z}
+  end
+  -- solve eq (matrix inversion)
+  local RGB2XYZ = solve_RGB2XYZ(fcal_RGB, fcal_XYZ)
+  X,Y,Z = dotproduct(RGB2XYZ,{R,G,B})
+  -- convert XYZ to xyY
+  return XYZ2xyY(X,Y,Z)
 end
 -- **** end calibration ****
 
