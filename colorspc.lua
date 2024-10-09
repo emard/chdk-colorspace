@@ -711,9 +711,24 @@ function shoot_measure_draw(draw)
   return r,g,b
 end
 
+-- set camera to manual
+-- place calib material
+-- call this funciton
+-- gets rgb from sensor, scales to 0-1 float
+-- converts float to 1E6 int
+-- writes rgb2xyy.txt file
 function calib_rgb2xyz()
+  read_rgb2xyy_file()
   r,g,b=shoot_measure_draw(true)
   print(str1E3(r,7) .. str1E3(g,7) .. str1E3(b,7))
+  CALRGB1E6[calib_point][1] = (r*1000000):int()
+  CALRGB1E6[calib_point][2] = (g*1000000):int()
+  CALRGB1E6[calib_point][3] = (b*1000000):int()
+  if write_rgb2xyy_file() then
+    printf("rgb2xyy.txt point %d wr", calib_point)
+  else
+    print("rgb2xyy.txt error write")
+  end
 end
 
 function calibration()
