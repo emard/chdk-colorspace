@@ -1,0 +1,43 @@
+chdk firmware binary:
+https://mighty-hoernsche.de/
+
+chdkptp binary: Windows Linux Apple Raspberry
+https://app.assembla.com/spaces/chdkptp/documents
+
+SX280HS 1.02B
+SX280HS 1.02C
+SX40HS  1.00I
+M10     1.10G
+
+version from image
+
+exiftool -MakerNotes:FirmwareRevision IMG_*.jpg
+Firmware Revision               : 1.02 rev 3.00
+
+1.02 rev 3.00 = 1.02C
+
+rev number to letter conversion table
+
+1.00=A, 2.00=B, 3.00=C, 4.00=D, 5.00=E 6.00=F 7.00=G 8.00=H 9.00=I,
+a.00=J, b.00=K, c.00=L, d.00=M, e.00=N, f.00=O ...
+
+make SD card bootable
+
+#During the boot process, a Canon P&S camera powers up and checks to see
+# if the SD card lock switch is in the "Locked" position.
+# If the card is locked, the camera next checks the volume boot sector
+# of the first partition on the SD card for the signature string "BOOTDISK".
+# This signature is stored starting at offset 0x40 (decimal 64) on a FAT16
+# volume and at offset 0x1E0 on a FAT32 volume. If the signature is found,
+# the camera checks the root directory of the SD card for a file named
+# "DISKBOOT.BIN". If found, this file is loaded into memory and control is
+# passed to that code. Naturally, this file contains the CHDK program 
+
+umount /dev/mmcblk0p1
+echo -n BOOTDISK | dd bs=1 count=8 seek=480 of=/dev/mmcblk0p1
+
+unzip chdk to root of SD card:
+mount /dev/mmcblk0p1 /mnt
+cd /mnt
+unzip install/sx40hs-100i-1.6.1-6289-full.zip
+umount /dev/mmcblk0p1
