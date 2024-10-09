@@ -2,11 +2,9 @@
 [x] floating point available in CHDK 1.6 imath -> fmath
 [ ] choose inverse gamma coefficients sRGB, Rec.709 etc
 [ ] input value table choice more chars than 6
-[ ] camera raw sensor readings ignore camera manual
-    white balance. Make internal white balance
-[ ] raw sensor probably have some gamma, experimental
-    exposure: 1/x   1/2x  1/4x
-    readings: 0.150 0.110 0.077
+[ ] @param @default
+[ ] raw sensor probably have some gamma need experimental
+    measurements
 [ ] check light intensity to sensor reading relation
     (lamp away sqrt(2)x = 1.41x should make brigtness 1/2x)
     (2 lamps and 1 lamp, brightness 1/2x)
@@ -16,9 +14,10 @@
     each point replaces one row in calib matrix
 [ ] test are both green in rgbg develop to same green color
 [x] dot product matrix . matrix
-[ ] cal file should now be (int1E6, unfolded array)
+[x] cal file should now be (int1E6, unfolded array)
     R1 G1 B1 x1 y1 Y1
     R2 G2 B2 x2 y2 Y2
     R3 G3 B3 x3 y3 Y3
 [ ] exposure calibration?
-[ ] RGB->xyY direct?
+[ ] RGB->xyY direct option
+
