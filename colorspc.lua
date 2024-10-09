@@ -8,9 +8,11 @@
 #calib_x=333 "Calib x"  [0 999]
 #calib_y=333 "Calib y"  [0 999]
 #calib_Y=333 "Calib Y"  [0 999]
+#over_XYZ=true "Over XYZ"
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #font_h=200 "Font height" [10 1000]
+#wait_for_key=false "Wait for a key"
 #enable_raw=false "Enable raw"
 ]]
 
@@ -580,22 +582,30 @@ function apply_cal_RGB2xyY(R,G,B)
   -- convert int's 0-999999 to float's 0-1
   local fcal_RGB = mat3x3int2float(CALRGB1E6,1000000)
   local fcal_xyY = mat3x3int2float(CALxyY1E6,1000000)
-  local fcal_XYZ = {{},{},{}}
-  -- convert xyY to XYZ
-  local X,Y,Z
-  for i=1,3 do
-    X,Y,Z = xyY2XYZ(fcal_xyY[i][1],fcal_xyY[i][2],fcal_xyY[i][3])
-    fcal_XYZ[i] = {X,Y,Z}
+  if over_XYZ then
+    -- RGB->XYZ->xyY
+    local fcal_XYZ = {{},{},{}}
+    -- convert xyY to XYZ
+    local X,Y,Z
+    for i=1,3 do
+      X,Y,Z = xyY2XYZ(fcal_xyY[i][1],fcal_xyY[i][2],fcal_xyY[i][3])
+      fcal_XYZ[i] = {X,Y,Z}
+    end
+    --print("cal RGB")
+    --printmat3x3(fcal_RGB)
+    --print("cal xyY")
+    --printmat3x3(fcal_xyY)
+    -- solve eq (matrix inversion)
+    local RGB2XYZ = solve_RGB2XYZ(fcal_RGB, fcal_XYZ)
+    local XYZ = dotproduct(RGB2XYZ,{R,G,B})
+    -- convert XYZ to xyY
+    return XYZ2xyY(XYZ[1],XYZ[2],XYZ[3])
+  else
+    -- direct RGB->xyY without intermediate XYZ
+    local RGB2xyY = solve_RGB2XYZ(fcal_RGB, fcal_xyY)
+    local xyY = dotproduct(RGB2xyY,{R,G,B})
+    return xyY[1],xyY[2],xyY[3]
   end
-  --print("cal RGB")
-  --printmat3x3(fcal_RGB)
-  --print("cal xyY")
-  --printmat3x3(fcal_xyY)
-  -- solve eq (matrix inversion)
-  local RGB2XYZ = solve_RGB2XYZ(fcal_RGB, fcal_XYZ)
-  local XYZ = dotproduct(RGB2XYZ,{R,G,B})
-  -- convert XYZ to xyY
-  return XYZ2xyY(XYZ[1],XYZ[2],XYZ[3])
 end
 -- **** end calibration ****
 
@@ -659,7 +669,8 @@ end
 -- test_dot3x3()
 -- test_RGB2XYZ()
 -- print("press key")
-wait_click(0)
-
+if wait_for_key then
+  wait_click(0)
+end
 --sleep(200)
 -- ******** end shooting logic *********
