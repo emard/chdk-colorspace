@@ -717,13 +717,26 @@ end
 -- gets rgb from sensor, scales to 0-1 float
 -- converts float to 1E6 int
 -- writes rgb2xyy.txt file
-function calib_rgb2xyz()
+function calib_rgb2xyy()
   read_rgb2xyy_file()
   r,g,b=shoot_measure_draw(true)
   print(str1E3(r,7) .. str1E3(g,7) .. str1E3(b,7))
   CALRGB1E6[calib_point][1] = (r*1000000):int()
   CALRGB1E6[calib_point][2] = (g*1000000):int()
   CALRGB1E6[calib_point][3] = (b*1000000):int()
+  CALxyY1E6[calib_point][1] = calib_x * 1000
+  CALxyY1E6[calib_point][2] = calib_y * 1000
+  CALxyY1E6[calib_point][3] = calib_Y * 1000
+  local calib_target_name = calib_target[calib_target.index]
+  -- if calibration target is Gardner disc
+  -- place transparent color in front of camera lens
+  -- and point camera to white paper
+  if calib_target_name == "Gardner" then
+    for i=1,3 do
+      CALxyY1E6[calib_point][i] = GARDNER2XY1E4[gardner][i]*100
+    end
+  end
+
   if write_rgb2xyy_file() then
     printf("rgb2xyy.txt point %d wr", calib_point)
   else
@@ -930,7 +943,7 @@ end
 
 if calibrate then
   --calibration()
-  calib_rgb2xyz()
+  calib_rgb2xyy()
 else
   colorimetry(true)
 end
