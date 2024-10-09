@@ -478,7 +478,7 @@ function measure_rgb()
   local y1 = rawop.get_raw_height()/2 - meter_size_y/2
 
   local r,g1,b,g2 = rawop.meter_rgbg(x1,y1,meter_size_x/2,meter_size_y/2,2,2)
-  print(string.format("r=%d g1=%d g2=%d b=%d",r,g1,g2,b))
+  --print(string.format("r=%d g1=%d g2=%d b=%d",r,g1,g2,b))
   fr = fmath.new(        r-min_level,max_level-min_level)
   fg = fmath.new((g1+g2)/2-min_level,max_level-min_level)
   fb = fmath.new(        b-min_level,max_level-min_level)
@@ -535,7 +535,7 @@ end
 function calib_rgb2xyy()
   read_rgb2xyy_file()
   r,g,b=shoot_measure_draw(true)
-  print(str1E3(r,7) .. str1E3(g,7) .. str1E3(b,7))
+  --print(str1E3(r,7) .. str1E3(g,7) .. str1E3(b,7))
   CALRGB1E6[calib_point][1] = (r*1000000):int()
   CALRGB1E6[calib_point][2] = (g*1000000):int()
   CALRGB1E6[calib_point][3] = (b*1000000):int()
