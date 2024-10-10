@@ -552,9 +552,7 @@ function shoot_measure_stamp(stamp)
   -- read raw sensor values
   local r,g,b = measure_rgb(stamp)
   if stamp then
-    local x = fmath.new(calib_x,1000)
-    local y = fmath.new(calib_y,1000)
-    local Y = fmath.new(calib_Y,1000)
+    local x,y,Y = calib_target_xyY()
     stamp_numbers(r,g,b,x,y,Y)
     stamp_title(string.format("CAL%d",calib_point))
     --stamp_title("123")
@@ -567,6 +565,24 @@ function shoot_measure_stamp(stamp)
   return r,g,b
 end
 
+-- return float's xyY
+function calib_target_xyY()
+  local xyY = {}
+  xyY[1] = fmath.new(calib_x,1000)
+  xyY[2] = fmath.new(calib_y,1000)
+  xyY[3] = fmath.new(calib_Y,1000)
+  local calib_target_name = calib_target[calib_target.index]
+  -- if calibration target is Gardner disc
+  -- place transparent color in front of camera lens
+  -- and point camera to white paper
+  if calib_target_name == "Gardner" then
+    for i=1,3 do
+      xyY[i] = fmath.new(GARDNER2XY1E4[gardner][i],10000)
+    end
+  end
+  return xyY[1],xyY[2],xyY[3]
+end
+
 -- set camera to manual
 -- place calib material
 -- call this funciton
@@ -575,23 +591,15 @@ end
 -- writes rgb2xyy.txt file
 function calib_rgb2xyy()
   read_rgb2xyy_file()
-  r,g,b=shoot_measure_stamp(true)
+  local r,g,b=shoot_measure_stamp(true)
   --print(str1E3(r,7) .. str1E3(g,7) .. str1E3(b,7))
   CALRGB1E6[calib_point][1] = (r*1000000):int()
   CALRGB1E6[calib_point][2] = (g*1000000):int()
   CALRGB1E6[calib_point][3] = (b*1000000):int()
-  CALxyY1E6[calib_point][1] = calib_x * 1000
-  CALxyY1E6[calib_point][2] = calib_y * 1000
-  CALxyY1E6[calib_point][3] = calib_Y * 1000
-  local calib_target_name = calib_target[calib_target.index]
-  -- if calibration target is Gardner disc
-  -- place transparent color in front of camera lens
-  -- and point camera to white paper
-  if calib_target_name == "Gardner" then
-    for i=1,3 do
-      CALxyY1E6[calib_point][i] = GARDNER2XY1E4[gardner][i]*100
-    end
-  end
+  local x,y,Y = calib_target_xyY()
+  CALxyY1E6[calib_point][1] = (x*1000000):int()
+  CALxyY1E6[calib_point][2] = (y*1000000):int()
+  CALxyY1E6[calib_point][3] = (Y*1000000):int()
   if write_rgb2xyy_file() then
     printf("rgb2xyy.txt point %d wr", calib_point)
   else
