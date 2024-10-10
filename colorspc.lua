@@ -1,5 +1,5 @@
 --[[
-@title COLOR SPACE v100
+@title COLOR SPACE v101
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
@@ -8,7 +8,6 @@
 #calib_x=333 "Calib x"  [0 999]
 #calib_y=333 "Calib y"  [0 999]
 #calib_Y=333 "Calib Y"  [0 999]
-#over_XYZ=true "Over XYZ"
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #font_h=200 "Font height" [10 1000]
@@ -23,7 +22,8 @@
 -- illuminant="CIE_E"
 -- inverse_gamma="None"
 
-shots=1 -- hardcode always 1 shot
+shots=1 -- 1 shot is enough
+thru_XYZ=true -- thru XYZ works much better
 
 -- white is CIE x=0.333 y=0.333
 
@@ -629,7 +629,7 @@ function apply_cal_RGB2xyY(R,G,B)
   -- convert int's 0-999999 to float's 0-1
   local fcal_RGB = mat3x3int2float(CALRGB1E6,1000000)
   local fcal_xyY = mat3x3int2float(CALxyY1E6,1000000)
-  if over_XYZ then
+  if thru_XYZ then
     -- RGB->XYZ->xyY
     local fcal_XYZ = {{},{},{}}
     -- convert xyY to XYZ
