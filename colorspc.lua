@@ -341,32 +341,8 @@ function calculate_colorspace()
   local x1 = rawop.get_raw_width()/2 - meter_size_x/2
   local y1 = rawop.get_raw_height()/2 - meter_size_y/2
 
-  -- local m = rawop.meter(x1,y1,meter_size_x,meter_size_y,1,1)
-  local r,g1,b,g2 = rawop.meter_rgbg(x1,y1,meter_size_x/2,meter_size_y/2,2,2)
-
-  -- draw white rectangle around metered area
-  rawop.rect_rgbg(x1-2,y1-2,meter_size_x+4,meter_size_y+4,2,max_level,max_level,max_level)
-
-  -- draw small coloured boxes at 4 corners of metered area
-  rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
-  rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
-  rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
-  rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
-
-  -- below the metered area, reproduce the average color bar
-  rawop.fill_rect_rgbg(x1,y1+meter_size_y+100,meter_size_x,200,r,g1,b,g2)
-
-  local i_r, i_g1, i_g2, i_g, i_b
-  i_r  = (r-min_level)
-  i_g  = (g1+g2)/2-min_level
-  i_b  = (b-min_level)
-  local i_range = max_level-min_level
-
   -- int rgb to float rgb range 0-1
-  local r,g,b
-  r = fmath.new(i_r,i_range) -- i_r / i_range
-  g = fmath.new(i_g,i_range) -- i_g / i_range
-  b = fmath.new(i_b,i_range) -- i_b / i_range
+  local r,g,b = measure_rgb(true)
 
   -- apply calibration
   local CIE_x,CIE_y,CIE_Y
@@ -399,9 +375,6 @@ function calculate_colorspace()
   printf("R=%s G=%s B=%s",str1E3(r,6),str1E3(g,6),str1E3(b,6))
   printf("x=%s y=%s Y=%s (CIE)",str1E3(CIE_x,6),str1E3(CIE_y,6),str1E3(CIE_Y,6))
   --logfile=io.open("A/colorspc.log","wb")
-  --logfile:write(string.format("illuminant = >>%s<<\n", illuminant[illuminant.index]))
-  --logfile:write(string.format("meter r=%d g1=%d g2=%d b=%d\n",r,g1,g2,b))
-  --logfile:write(string.format("meter r=%s g1=%s g2=%s b=%s\n",str1E3(i_r),str1E3(i_g1),str1E3(i_g2),str1E3(i_b)))
   --logfile.close()
   return r,g,b
 end -- do_colorspace
@@ -467,39 +440,49 @@ function read_rgb2xyy_file()
   return false
 end
 
+-- draw=true draw measured area
+-- draw=false don't draw only measure
 -- return r,g,b floats
-function measure_rgb()
+function measure_rgb(draw)
+  -- meter range
   local min_level = rawop.get_black_level() --  128
   local max_level = rawop.get_white_level() -- 4095
 
-  -- centered 500 px square (from parameters)
-  --local meter_size_x = 500
-  --local meter_size_y = 400
-
-  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
-  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
-
-  local r,g1,b,g2 = rawop.meter_rgbg(x1,y1,meter_size_x/2,meter_size_y/2,2,2)
+  local r,g1,b,g2 = meter_square(draw)
   --print(string.format("r=%d g1=%d g2=%d b=%d",r,g1,g2,b))
-  fr = fmath.new(        r-min_level,max_level-min_level)
-  fg = fmath.new((g1+g2)/2-min_level,max_level-min_level)
-  fb = fmath.new(        b-min_level,max_level-min_level)
+  fr = fmath.new(  2*r-2*min_level,2*(max_level-min_level+1))
+  fg = fmath.new(g1+g2-2*min_level,2*(max_level-min_level+1))
+  fb = fmath.new(  2*b-2*min_level,2*(max_level-min_level+1))
 
   return fr,fg,fb
 end
 
-function draw_meter_square()
+-- draw=true draw measured area
+-- draw=false don't draw only measure
+-- return r,g1,b,g2 int's
+function meter_square(draw)
+  local line_t  = font_h/10  -- segment line thickness
   local min_level = rawop.get_black_level() --  128
   local max_level = rawop.get_white_level() -- 4095
   local x1 = rawop.get_raw_width()/2 - meter_size_x/2
   local y1 = rawop.get_raw_height()/2 - meter_size_y/2
-  -- draw white rectangle around metered area
-  rawop.rect_rgbg(x1-2,y1-2,meter_size_x+4,meter_size_y+4,2,max_level,max_level,max_level)
-  -- draw small coloured boxes at 4 corners of metered area
-  --rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
-  --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
-  --rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
-  --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
+  -- local m = rawop.meter(x1,y1,meter_size_x,meter_size_y,1,1)
+  local r,g1,b,g2 = rawop.meter_rgbg(x1,y1,meter_size_x/2,meter_size_y/2,2,2)
+  if draw then
+    -- draw white rectangle around metered area
+    -- line thickness same as font
+    for i=1,line_t do
+      rawop.rect_rgbg(x1-1-i,y1-1-i,meter_size_x+2+i+i,meter_size_y+2+i+i,2,max_level,max_level,max_level)
+    end
+    -- draw small coloured boxes at 4 corners of metered area
+    rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
+    rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
+    rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
+    rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
+    -- below the metered area, reproduce the average color bar
+    rawop.fill_rect_rgbg(x1,y1+meter_size_y+100,meter_size_x,200,r,g1,b,g2)
+  end
+  return r,g1,b,g2
 end
 
 -- shoot, measure and optionally draw
@@ -516,10 +499,7 @@ function shoot_measure_draw(draw)
   local count, ms = set_yield(-1,-1)
   -- read raw sensor values
   local r,g,b
-  r,g,b=measure_rgb()
-  if draw then
-    draw_meter_square()
-  end
+  r,g,b=measure_rgb(draw)
   set_yield(count, ms)
   hook_raw.continue()
   release('shoot_full_only')
