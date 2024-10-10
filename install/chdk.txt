@@ -7,6 +7,7 @@ https://app.assembla.com/spaces/chdkptp/documents
 SX280HS 1.02B
 SX280HS 1.02C
 SX40HS  1.00I
+D30     1.00A
 M10     1.10G
 
 version from image
