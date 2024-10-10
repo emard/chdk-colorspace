@@ -425,15 +425,15 @@ function read_rgb2xyy_file()
   return false
 end
 
--- draw=true draw measured area
--- draw=false don't draw only measure
+-- stamp=true stamp measured area
+-- stamp=false don't stamp only measure
 -- return r,g,b floats
-function measure_rgb(draw)
+function measure_rgb(stamp)
   -- meter range
   local min_level = rawop.get_black_level() --  128
   local max_level = rawop.get_white_level() -- 4095
 
-  local r,g1,b,g2 = meter_square(draw)
+  local r,g1,b,g2 = meter_square(stamp)
   --print(string.format("r=%d g1=%d g2=%d b=%d",r,g1,g2,b))
   fr = fmath.new(  2*r-2*min_level,2*(max_level-min_level+1))
   fg = fmath.new(g1+g2-2*min_level,2*(max_level-min_level+1))
@@ -442,10 +442,10 @@ function measure_rgb(draw)
   return fr,fg,fb
 end
 
--- draw=true draw measured area
--- draw=false don't draw only measure
+-- stamp=true stamp measured area
+-- stamp=false don't stamp only measure
 -- return r,g1,b,g2 int's
-function meter_square(draw)
+function meter_square(stamp)
   local line_t  = font_h/10  -- segment line thickness
   local min_level = rawop.get_black_level() --  128
   local max_level = rawop.get_white_level() -- 4095
@@ -453,13 +453,13 @@ function meter_square(draw)
   local y1 = rawop.get_raw_height()/2 - meter_size_y/2
   -- local m = rawop.meter(x1,y1,meter_size_x,meter_size_y,1,1)
   local r,g1,b,g2 = rawop.meter_rgbg(x1,y1,meter_size_x/2,meter_size_y/2,2,2)
-  if draw then
-    -- draw white rectangle around metered area
+  if stamp then
+    -- stamp white rectangle around metered area
     -- line thickness same as font
     for i=1,line_t do
       rawop.rect_rgbg(x1-1-i,y1-1-i,meter_size_x+2+i+i,meter_size_y+2+i+i,2,max_level,max_level,max_level)
     end
-    -- draw small coloured boxes at 4 corners of metered area
+    -- stamp small coloured boxes at 4 corners of metered area
     rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
     rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
     rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
@@ -490,7 +490,7 @@ function stamp_numbers(r,g,b,x,y,Y)
   local x1 = rawop.get_raw_width()/2 - meter_size_x/2
   local y1 = rawop.get_raw_height()/2 - meter_size_y/2
 
-  -- draw RGB (color) digits right aligned on the left side
+  -- stamp RGB (color) digits right aligned on the left side
   -- local x_left = rawop.get_jpeg_left()+400
   local x_left = x1-font_p*7
   -- y_top centers digits in y axis
@@ -499,7 +499,7 @@ function stamp_numbers(r,g,b,x,y,Y)
   draw_digits(x_left,y_top+font_nl*1,str1E3(g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
   draw_digits(x_left,y_top+font_nl*2,str1E3(b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
 
-  -- draw xy (white) digits left aligned on the right side
+  -- stamp xy (white) digits left aligned on the right side
   local x_right = x1+meter_size_x+font_p
   draw_digits(x_right,y_top+font_nl*0,str1E3(x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right,y_top+font_nl*1,str1E3(y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
@@ -529,7 +529,7 @@ function stamp_title(title)
   local x1 = rawop.get_raw_width()/2 - meter_size_x/2
   local y1 = rawop.get_raw_height()/2 - meter_size_y/2
 
-  -- draw RGB (color) digits right aligned on the left side
+  -- stamp RGB (color) digits right aligned on the left side
   -- local x_left = rawop.get_jpeg_left()+400
   local x_left = x1+meter_size_x/2-(font_p * #title)/2 -- align center
   -- y_top places string above meter area
@@ -537,11 +537,11 @@ function stamp_title(title)
   draw_digits(x_left,y_top+font_nl*0,title,font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 end
 
--- shoot, measure and optionally draw
+-- shoot, measure and optionally stamp
 -- measured rectangular area on the image
--- saves the image with drawing on SD card
+-- saves the image with stamping on SD card
 -- returns float r,g,b
-function shoot_measure_draw(draw)
+function shoot_measure_stamp(stamp)
   hook_raw.set(10000)
   press('shoot_half')
   repeat sleep(10) until get_shooting()
@@ -550,8 +550,8 @@ function shoot_measure_draw(draw)
   hook_raw.wait_ready()
   local count, ms = set_yield(-1,-1)
   -- read raw sensor values
-  local r,g,b = measure_rgb(draw)
-  if draw then
+  local r,g,b = measure_rgb(stamp)
+  if stamp then
     local x = fmath.new(calib_x,1000)
     local y = fmath.new(calib_y,1000)
     local Y = fmath.new(calib_Y,1000)
@@ -575,7 +575,7 @@ end
 -- writes rgb2xyy.txt file
 function calib_rgb2xyy()
   read_rgb2xyy_file()
-  r,g,b=shoot_measure_draw(true)
+  r,g,b=shoot_measure_stamp(true)
   --print(str1E3(r,7) .. str1E3(g,7) .. str1E3(b,7))
   CALRGB1E6[calib_point][1] = (r*1000000):int()
   CALRGB1E6[calib_point][2] = (g*1000000):int()
