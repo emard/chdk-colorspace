@@ -80,9 +80,11 @@ digit2seg7 = {
     ["9"]="abcdfg",
     ["."]=".",
     ["A"]="efabcg",
-    ["R"]="afe",
-    ["G"]="abcfg",
     ["B"]="fedcg",
+    ["C"]="adef",
+    ["G"]="abcfg",
+    ["L"]="def",
+    ["R"]="afe",
     ["X"]="fbgec",
     ["Y"]="fbgdc",
     ["Z"]="abged",
@@ -345,28 +347,11 @@ function calculate_colorspace()
   local r,g,b = measure_rgb(true)
 
   -- apply calibration
-  local CIE_x,CIE_y,CIE_Y
-  CIE_x,CIE_y,CIE_Y = apply_cal_RGB2xyY(r,g,b)
+  local CIE_x,CIE_y,CIE_Y = apply_cal_RGB2xyY(r,g,b)
 
-  -- draw RGB (color) digits right aligned on the left side
-  -- local x_left = rawop.get_jpeg_left()+400
-  local x_left = x1-font_p*7
-  -- y_top centers digits in y axis
-  local y_top  = (y1+meter_size_y/2)-font_nl*3/2+(font_nl-font_h)/2
-  draw_digits(x_left,y_top+font_nl*0,str1E3(r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
-  draw_digits(x_left,y_top+font_nl*1,str1E3(g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
-  draw_digits(x_left,y_top+font_nl*2,str1E3(b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
-
-  -- draw xy (white) digits left aligned on the right side
-  local x_right = x1+meter_size_x+font_p
-  draw_digits(x_right,y_top+font_nl*0,str1E3(CIE_x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right,y_top+font_nl*1,str1E3(CIE_y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right,y_top+font_nl*2,str1E3(CIE_Y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-
-  -- font size calc for lowercase "xy" and uppercase "Y"
-  draw_digits(x_right+font_p*11/2,y_top+font_nl*0+font_h/4,"X",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right+font_p*11/2,y_top+font_nl*1+font_h/4,"Y",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right+font_p*11/2,y_top+font_nl*2,"Y",font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  -- stamp RGB (color) digits right aligned on the left side
+  -- stamp xyY (white) digits left aligned on the right side
+  stamp_numbers(r,g,b,CIE_x,CIE_y,CIE_Y)
 
   set_console_layout(0,0,40,12)
   --printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
@@ -485,6 +470,73 @@ function meter_square(draw)
   return r,g1,b,g2
 end
 
+-- all inpot parameters are float's
+-- stamped on raw picture
+-- formatted like 0.000
+function stamp_numbers(r,g,b,x,y,Y)
+  -- local font_h  = 200        -- digit height Y taken from script arguments
+  local font_w  = font_h/2   -- digit width X
+  local font_p  = font_h*3/4 -- pitch (column width) X
+  local font_t  = font_h/10  -- segment line thickness
+  local font_nl = font_h*3/2 -- line (row width) Y
+
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
+
+  -- centered 500 px square (from parameters)
+  --local meter_size_x = 500
+  --local meter_size_y = 400
+
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+
+  -- draw RGB (color) digits right aligned on the left side
+  -- local x_left = rawop.get_jpeg_left()+400
+  local x_left = x1-font_p*7
+  -- y_top centers digits in y axis
+  local y_top  = (y1+meter_size_y/2)-font_nl*3/2+(font_nl-font_h)/2
+  draw_digits(x_left,y_top+font_nl*0,str1E3(r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
+  draw_digits(x_left,y_top+font_nl*1,str1E3(g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
+  draw_digits(x_left,y_top+font_nl*2,str1E3(b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
+
+  -- draw xy (white) digits left aligned on the right side
+  local x_right = x1+meter_size_x+font_p
+  draw_digits(x_right,y_top+font_nl*0,str1E3(x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl*1,str1E3(y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl*2,str1E3(Y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+
+  -- font size calc for lowercase "xy" and uppercase "Y"
+  draw_digits(x_right+font_p*11/2,y_top+font_nl*0+font_h/4,"X",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right+font_p*11/2,y_top+font_nl*1+font_h/4,"Y",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right+font_p*11/2,y_top+font_nl*2,"Y",font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+end
+
+-- title is string
+function stamp_title(title)
+  -- local font_h  = 200        -- digit height Y taken from script arguments
+  local font_w  = font_h/2   -- digit width X
+  local font_p  = font_h*3/4 -- pitch (column width) X
+  local font_t  = font_h/10  -- segment line thickness
+  local font_nl = font_h*3/2 -- line (row width) Y
+
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
+
+  -- centered 500 px square (from parameters)
+  --local meter_size_x = 500
+  --local meter_size_y = 400
+
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+
+  -- draw RGB (color) digits right aligned on the left side
+  -- local x_left = rawop.get_jpeg_left()+400
+  local x_left = x1+meter_size_x/2-(font_p * #title)/2 -- align center
+  -- y_top places string above meter area
+  local y_top  = y1-font_nl
+  draw_digits(x_left,y_top+font_nl*0,title,font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+end
+
 -- shoot, measure and optionally draw
 -- measured rectangular area on the image
 -- saves the image with drawing on SD card
@@ -498,8 +550,15 @@ function shoot_measure_draw(draw)
   hook_raw.wait_ready()
   local count, ms = set_yield(-1,-1)
   -- read raw sensor values
-  local r,g,b
-  r,g,b=measure_rgb(draw)
+  local r,g,b = measure_rgb(draw)
+  if draw then
+    local x = fmath.new(calib_x,1000)
+    local y = fmath.new(calib_y,1000)
+    local Y = fmath.new(calib_Y,1000)
+    stamp_numbers(r,g,b,x,y,Y)
+    stamp_title("CAL")
+    --stamp_title("123")
+  end
   set_yield(count, ms)
   hook_raw.continue()
   release('shoot_full_only')
