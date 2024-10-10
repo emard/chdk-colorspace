@@ -19,6 +19,8 @@
     R2 G2 B2 x2 y2 Y2
     R3 G3 B3 x3 y3 Y3
 [ ] exposure calibration?
-[ ] RGB->xyY direct option
+[x] RGB->xyY direct option
 [x] calibration: notify on-screen input RGB and target xyY
 [x] rename draw->stamp
+[ ] calib to XYZ
+[ ] output and stamp XYZ
