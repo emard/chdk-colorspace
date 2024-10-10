@@ -465,7 +465,7 @@ function meter_square(draw)
     rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
     rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
     -- below the metered area, reproduce the average color bar
-    rawop.fill_rect_rgbg(x1,y1+meter_size_y+100,meter_size_x,200,r,g1,b,g2)
+    rawop.fill_rect_rgbg(x1,y1+meter_size_y+meter_size_y/4,meter_size_x,meter_size_y/2,r,g1,b,g2)
   end
   return r,g1,b,g2
 end
