@@ -533,7 +533,7 @@ function stamp_title(title)
   -- local x_left = rawop.get_jpeg_left()+400
   local x_left = x1+meter_size_x/2-(font_p * #title)/2 -- align center
   -- y_top places string above meter area
-  local y_top  = y1-font_nl
+  local y_top  = y1-font_nl*3/2
   draw_digits(x_left,y_top+font_nl*0,title,font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 end
 
@@ -556,7 +556,7 @@ function shoot_measure_stamp(stamp)
     local y = fmath.new(calib_y,1000)
     local Y = fmath.new(calib_Y,1000)
     stamp_numbers(r,g,b,x,y,Y)
-    stamp_title("CAL")
+    stamp_title(string.format("CAL%d",calib_point))
     --stamp_title("123")
   end
   set_yield(count, ms)
