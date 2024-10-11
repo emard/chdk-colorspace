@@ -23,4 +23,4 @@
 [x] calibration: notify on-screen input RGB and target xyY
 [x] rename draw->stamp
 [ ] calib to XYZ
-[ ] output and stamp XYZ
+[x] output and stamp XYZ
