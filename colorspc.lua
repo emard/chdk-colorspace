@@ -1,5 +1,5 @@
 --[[
-@title COLOR SPACE v101
+@title COLOR SPACE v102
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
@@ -23,7 +23,7 @@
 -- inverse_gamma="None"
 
 shots=1 -- 1 shot is enough
-thru_XYZ=true -- thru XYZ works much better
+solve_XYZ=true -- thru XYZ works much better
 
 -- white is CIE x=0.333 y=0.333
 
@@ -59,11 +59,11 @@ end
 -- **** begin 7-segment display ****
 --
 --    aaaa
---   f    b
---   f    b
+--   f  i b
+--   f  i b
 --    gggg
---   e    c
---   e    c
+--   e  l c
+--   e  l c
 --    dddd  .
 --
 digit2seg7 = {
@@ -84,9 +84,13 @@ digit2seg7 = {
     ["C"]="adef",
     ["G"]="abcfg",
     ["L"]="def",
+    ["M"]="afebci",
+    ["N"]="afebc",
     ["R"]="afe",
+    ["U"]="dfebc",
+    ["W"]="dfebcl",
     ["X"]="fbgec",
-    ["Y"]="fbgdc",
+    ["Y"]="fbgcd",
     ["Z"]="abged",
     ["="]="gd",
     [" "]="",
@@ -103,6 +107,8 @@ seg7_line = {
     ["e"]={ 0, 6,   0, 9},
     ["f"]={ 0, 1,   0, 4},
     ["g"]={ 1, 5,   4, 5},
+    ["i"]={ 3, 1,   3, 4},
+    ["l"]={ 3, 6,   3, 9},
     ["."]={ 2, 8,   2,10},
   }
 
@@ -327,22 +333,6 @@ end
 -- markings on saved picture
 -- TODO if use_cal==true then apply calibration using CALRGB1E6
 function calculate_colorspace()
-  -- local font_h  = 200        -- digit height Y taken from script arguments
-  local font_w  = font_h/2   -- digit width X
-  local font_p  = font_h*3/4 -- pitch (column width) X
-  local font_t  = font_h/10  -- segment line thickness
-  local font_nl = font_h*3/2 -- line (row width) Y
-
-  local min_level = rawop.get_black_level() --  128
-  local max_level = rawop.get_white_level() -- 4095
-
-  -- centered 500 px square (from parameters)
-  --local meter_size_x = 500
-  --local meter_size_y = 400
-
-  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
-  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
-
   -- int rgb to float rgb range 0-1
   local r,g,b = measure_rgb(true)
 
@@ -351,7 +341,9 @@ function calculate_colorspace()
 
   -- stamp RGB (color) digits right aligned on the left side
   -- stamp xyY (white) digits left aligned on the right side
-  stamp_numbers(r,g,b,CIE_x,CIE_y,CIE_Y)
+  stamp_RGB_xyY(r,g,b,CIE_x,CIE_y,CIE_Y)
+  local CIE_X,CIE_Y,CIE_Z = xyY2XYZ(CIE_x,CIE_y,CIE_Y)
+  stamp_XYZ(CIE_X,CIE_Y,CIE_Z)
 
   set_console_layout(0,0,40,12)
   --printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
@@ -460,10 +452,10 @@ function meter_square(stamp)
       rawop.rect_rgbg(x1-1-i,y1-1-i,meter_size_x+2+i+i,meter_size_y+2+i+i,2,max_level,max_level,max_level)
     end
     -- stamp small coloured boxes at 4 corners of metered area
-    rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
-    rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
-    rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
-    rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
+    --rawop.fill_rect_rgbg(x1,y1,16,16,r,min_level,min_level)
+    --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
+    --rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
+    --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
     -- below the metered area, reproduce the average color bar
     rawop.fill_rect_rgbg(x1,y1+meter_size_y+meter_size_y/4,meter_size_x,meter_size_y/2,r,g1,b,g2)
   end
@@ -473,7 +465,7 @@ end
 -- all inpot parameters are float's
 -- stamped on raw picture
 -- formatted like 0.000
-function stamp_numbers(r,g,b,x,y,Y)
+function stamp_RGB_xyY(r,g,b,x,y,Y)
   -- local font_h  = 200        -- digit height Y taken from script arguments
   local font_w  = font_h/2   -- digit width X
   local font_p  = font_h*3/4 -- pitch (column width) X
@@ -499,7 +491,7 @@ function stamp_numbers(r,g,b,x,y,Y)
   draw_digits(x_left,y_top+font_nl*1,str1E3(g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
   draw_digits(x_left,y_top+font_nl*2,str1E3(b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
 
-  -- stamp xy (white) digits left aligned on the right side
+  -- stamp xyY (white) digits left aligned on the right side
   local x_right = x1+meter_size_x+font_p
   draw_digits(x_right,y_top+font_nl*0,str1E3(x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right,y_top+font_nl*1,str1E3(y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
@@ -509,6 +501,38 @@ function stamp_numbers(r,g,b,x,y,Y)
   draw_digits(x_right+font_p*11/2,y_top+font_nl*0+font_h/4,"X",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right+font_p*11/2,y_top+font_nl*1+font_h/4,"Y",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right+font_p*11/2,y_top+font_nl*2,"Y",font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+end
+
+-- additionally stamp extra XYZ numbers
+function stamp_XYZ(X,Y,Z)
+  -- local font_h  = 200        -- digit height Y taken from script arguments
+  local font_small_h = font_h/2
+  local font_w  = font_small_h/2   -- digit width X
+  local font_p  = font_small_h*3/4 -- pitch (column width) X
+  local font_t  = font_small_h/10  -- segment line thickness
+  local font_nl = font_small_h*3/2 -- line (row width) Y
+
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
+
+  -- centered 500 px square (from parameters)
+  --local meter_size_x = 500
+  --local meter_size_y = 400
+
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+
+  -- stamp RGB (color) digits right aligned on the left side
+  -- local x_left = rawop.get_jpeg_left()+400
+  len = 7 -- for string length
+  local x_center = x1+meter_size_x/2-(font_p * len)/2 -- align center
+  -- y_top centers digits in y axis
+  local y_top = y1-font_nl*3-font_t*2
+
+  -- stamp XYZ (white) digits left aligned on the right side
+  draw_digits(x_center,y_top+font_nl*0,"X=" .. str1E3(X),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_center,y_top+font_nl*1,"Y=" .. str1E3(Y),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_center,y_top+font_nl*2,"Z=" .. str1E3(Z),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 end
 
 -- title is string
@@ -541,6 +565,7 @@ end
 -- measured rectangular area on the image
 -- saves the image with stamping on SD card
 -- returns float r,g,b
+-- calibration uses this
 function shoot_measure_stamp(stamp)
   hook_raw.set(10000)
   press('shoot_half')
@@ -553,8 +578,10 @@ function shoot_measure_stamp(stamp)
   local r,g,b = measure_rgb(stamp)
   if stamp then
     local x,y,Y = calib_target_xyY()
-    stamp_numbers(r,g,b,x,y,Y)
+    stamp_RGB_xyY(r,g,b,x,y,Y)
     stamp_title(string.format("CAL%d",calib_point))
+    --local X,Y,Z = xyY2XYZ(x,y,Y)
+    --stamp_XYZ(X,Y,Z)
     --stamp_title("123")
   end
   set_yield(count, ms)
@@ -629,7 +656,7 @@ function apply_cal_RGB2xyY(R,G,B)
   -- convert int's 0-999999 to float's 0-1
   local fcal_RGB = mat3x3int2float(CALRGB1E6,1000000)
   local fcal_xyY = mat3x3int2float(CALxyY1E6,1000000)
-  if thru_XYZ then
+  if solve_XYZ then
     -- RGB->XYZ->xyY
     local fcal_XYZ = {{},{},{}}
     -- convert xyY to XYZ
@@ -657,6 +684,7 @@ end
 -- **** end calibration ****
 
 -- **** begin colorimetry, normal operation ****
+-- similar to shoot_measure_stamp
 function colorimetry()
   if read_rgb2xyy_file() then
     print("rgb2xyy.txt read")
