@@ -24,3 +24,5 @@
 [x] rename draw->stamp
 [ ] calib to XYZ
 [x] output and stamp XYZ
+[ ] LAB values, calibration and output, formula is at
+    http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
