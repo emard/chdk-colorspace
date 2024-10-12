@@ -733,6 +733,43 @@ function xyz2Lab(xr,yr,zr)
   return L,a,b
 end
 
+-- convert Lab to xr,yr,zr
+-- http://www.brucelindbloom.com/index.html?Eqn_Lab_to_XYZ.html
+-- https://en.wikipedia.org/wiki/CIELAB_color_space
+-- input
+-- L,a,b floats L=0..100, a,b=-127..+127
+-- returns
+-- xr,yr,yr floats 0..1
+-- X,Y,Z are calculated form reference white
+-- Xr,Yr,Zr 0-1 from REFWHITEXYZ1E4 table
+-- X=xr*Xr Y=yr*Yr Z=zr*Zr
+function Lab2xyz(L,a,b)
+  local e,k
+  e = fmath.new(216,24389)
+  k = fmath.new(24389,27)
+  local fx,fy,fz
+  fy = (L+16)/116
+  fx = a/500+fy
+  fz = fy-b/200
+  local xr,yr,zr
+  if fx^3 > e then
+    xr = fx^3
+  else
+    xr = (116*fx-16)/k
+  end
+  if L > k*e then
+    yr = ((L+16)/116)^3
+  else
+    yr = L/k
+  end
+  if fz^3 > e then
+    zr = fz^3
+  else
+    zr = (116*fz-16)/k
+  end
+  return xr,yr,zr
+end
+
 -- should print
 -- XYZ
 --  0.333  0.333  0.334
@@ -749,13 +786,17 @@ function test_xyz2lab()
   print("XYZ")
   printvec3(XYZ)
   local xyz_r = {}
+  local XYZ_r = {}
   for i=1,3 do
-    XYZ_r = fmath.new(REFWHITEXYZ1E4["D50"][i],10000)
-    xyz_r[i] = XYZ[i] / XYZ_r
+    XYZ_r[i] = fmath.new(REFWHITEXYZ1E4["D50"][i],10000)
+    xyz_r[i] = XYZ[i] / XYZ_r[i]
   end
   L,a,b = xyz2Lab(xyz_r[1],xyz_r[2],xyz_r[3])
   print("Lab")
   printvec3({L,a,b})
+  xr,yr,zr = Lab2xyz(L,a,b)
+  print("XYZ")
+  printvec3({xr*XYZ_r[1],yr*XYZ_r[2],zr*XYZ_r[3]})
 end
 -- **** end conversion ****
 
