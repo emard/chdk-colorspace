@@ -694,6 +694,71 @@ function apply_cal_RGB2xyY(R,G,B)
 end
 -- **** end calibration ****
 
+-- **** begin conversion ****
+-- reference white illuminants
+-- https://www.mathworks.com/help/images/ref/whitepoint.html
+REFWHITEXYZ1E4 = {
+    ["A"]   = {10985, 10000,  3558}, -- CIE "A" tungsten 2865 K
+    ["C"]   = {10985, 10000,  3558}, -- CIE "C" daylight 6774 K deprecated
+    ["E"]   = {10000, 10000, 10000}, -- Equal energy ideal illuminator
+    ["D50"] = { 9642, 10000,  8251}, -- CIE "D50" 2° morning/sunset horizon light 5003 K
+    ["D55"] = { 9568, 10000,  9214}, -- CIE "D55" 2° min-morning/mid-sunset light 5500 K
+    ["D65"] = { 9504, 10000, 10888}, -- CIE "D65" 2° noon daylight 6504 K
+    ["ICC"] = { 9642, 10000,  8249}  -- Profile Connection Space (PCS) illuminant used in ICC profiles.
+}
+
+-- convert xr,yr,zr to Lab
+-- http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
+-- https://en.wikipedia.org/wiki/CIELAB_color_space
+-- XYZ should be divided by reference white illuminant
+-- Xr,Yr,Yr 0-1 from REFWHITEXYZ1E4 table
+-- input floats xr=X/Xr yr=Y/Yr zr=Z/Zr
+-- returns
+-- L,a,b    floats L=0..100, a,b=-127..+127
+function xyz2Lab(xr,yr,zr)
+  local e = fmath.new(216,24389)
+  local k = fmath.new(24389,27)
+  local xyz_r = {xr,yr,zr}
+  local f = {}
+  for i=1,3 do
+    if xyz_r[i] > e then
+      f[i] = xyz_r[i] ^ fmath.new(1,3)
+    else
+      f[i] = (k * xyz_r[i] + 16) / 116
+    end
+  end
+  local L = 116 *  f[2] - 16
+  local a = 500 * (f[1] - f[2])
+  local b = 200 * (f[2] - f[3])
+  return L,a,b
+end
+
+-- should print
+-- XYZ
+--  0.333  0.333  0.334
+-- Lab
+-- 64.483  4.237 -9.322
+-- check with https://www.nixsensor.com/free-color-converter/
+-- use illuminant D50 2°
+function test_xyz2lab()
+  x=fmath.new(333,1000)
+  y=fmath.new(333,1000)
+  Y=fmath.new(333,1000)
+  local X,Y,Z = xyY2XYZ(x,y,Y)
+  local XYZ = {X,Y,Z}
+  print("XYZ")
+  printvec3(XYZ)
+  local xyz_r = {}
+  for i=1,3 do
+    XYZ_r = fmath.new(REFWHITEXYZ1E4["D50"][i],10000)
+    xyz_r[i] = XYZ[i] / XYZ_r
+  end
+  L,a,b = xyz2Lab(xyz_r[1],xyz_r[2],xyz_r[3])
+  print("Lab")
+  printvec3({L,a,b})
+end
+-- **** end conversion ****
+
 -- **** begin colorimetry, normal operation ****
 -- similar to shoot_measure_stamp
 function colorimetry()
@@ -755,6 +820,7 @@ end
 -- test_dot3x3()
 -- test_RGB2XYZ()
 -- print("press key")
+-- test_xyz2lab()
 if wait_for_key then
   wait_click(0)
 end
