@@ -3,11 +3,15 @@
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
-#calib_target=xyY "Calib target" {Gardner xyY} table
+#calib_target=xyY "Calib target" {Lab Gardner xyY} table
 #gardner=11 "Calib Gardner" [1 18]
 #calib_x=333 "Calib x"  [0 999]
 #calib_y=333 "Calib y"  [0 999]
 #calib_Y=333 "Calib Y"  [0 999]
+#lab_illuminant=E "Lab illuminant" {D50 D55 D65 ICC A C E} table
+#calib_L=100 "Calib L" [0 100]
+#calib_a=0 "Calib a" [-127 127]
+#calib_b=0 "Calib b" [-127 127]
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #font_h=200 "Font height" [10 1000]
@@ -355,6 +359,9 @@ function calculate_colorspace()
   stamp_RGB_xyY(r,g,b,CIE_x,CIE_y,CIE_Y)
   local CIE_X,CIE_Y,CIE_Z = xyY2XYZ(CIE_x,CIE_y,CIE_Y)
   stamp_XYZ(CIE_X,CIE_Y,CIE_Z)
+  local Xr,Yr,Zr = illuminant_XYZ_r()
+  local CIE_L,CIE_a,CIE_b = xyz2Lab(CIE_X/Xr,CIE_Y/Yr,CIE_Z/Zr)
+  stamp_Lab(CIE_L,CIE_a,CIE_b)
 
   set_console_layout(0,0,40,12)
   --printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
@@ -546,6 +553,39 @@ function stamp_XYZ(X,Y,Z)
   draw_digits(x_center,y_top+font_nl*2,"Z=" .. str1E3(Z),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 end
 
+-- additionally stamp extra Lab numbers
+function stamp_Lab(L,a,b)
+  -- local font_h  = 200        -- digit height Y taken from script arguments
+  local font_small_h = font_h/2
+  local font_w  = font_small_h/2   -- digit width X
+  local font_p  = font_small_h*3/4 -- pitch (column width) X
+  local font_t  = font_small_h/10  -- segment line thickness
+  local font_nl = font_small_h*3/2 -- line (row width) Y
+
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
+
+  -- centered 500 px square (from parameters)
+  --local meter_size_x = 500
+  --local meter_size_y = 400
+
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+
+  -- stamp RGB (color) digits right aligned on the left side
+  -- local x_left = rawop.get_jpeg_left()+400
+  len = 9 -- for string length
+  --local x_center = x1+meter_size_x/2-(font_p * len)/2 + font_p*len -- align center
+  local x_right = x1+meter_size_x+font_p*2
+  -- y_top aligns digits in y axis above main xyY
+  local y_top = y1-font_nl*5-font_t*2
+
+  -- stamp XYZ (white) digits left aligned on the right side
+  draw_digits(x_right,y_top+font_nl*0,"L=" .. str1E3(L,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl*1,"A=" .. str1E3(a,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl*2,"b=" .. str1E3(b,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+end
+
 -- title is string
 function stamp_title(title)
   -- local font_h  = 200        -- digit height Y taken from script arguments
@@ -700,12 +740,31 @@ end
 REFWHITEXYZ1E4 = {
     ["A"]   = {10985, 10000,  3558}, -- CIE "A" tungsten 2865 K
     ["C"]   = {10985, 10000,  3558}, -- CIE "C" daylight 6774 K deprecated
-    ["E"]   = {10000, 10000, 10000}, -- Equal energy ideal illuminator
+    ["E"]   = {10000, 10000, 10000}, -- Equal energy ideal illuminant
     ["D50"] = { 9642, 10000,  8251}, -- CIE "D50" 2° morning/sunset horizon light 5003 K
     ["D55"] = { 9568, 10000,  9214}, -- CIE "D55" 2° min-morning/mid-sunset light 5500 K
     ["D65"] = { 9504, 10000, 10888}, -- CIE "D65" 2° noon daylight 6504 K
     ["ICC"] = { 9642, 10000,  8249}  -- Profile Connection Space (PCS) illuminant used in ICC profiles.
 }
+
+-- script configuration defines
+-- illuminat for reference white
+-- return Xr,Yr,Zr float's 160190
+function illuminant_XYZ_r()
+  local XYZ_r = {}
+  local illuminant_name = lab_illuminant[lab_illuminant.index]
+  for i=1,3 do
+    XYZ_r[i] = fmath.new(REFWHITEXYZ1E4[illuminant_name][i],10000)
+  end
+  return XYZ_r[1],XYZ_r[2],XYZ_r[3]
+end
+
+function test_illuminant()
+  local X,Y,Z = illuminant_XYZ_r()
+  local XYZ = {X,Y,Z}
+  print("XYZ illuminant")
+  printvec3(XYZ)
+end
 
 -- convert xr,yr,zr to Lab
 -- http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
@@ -862,6 +921,7 @@ end
 -- test_RGB2XYZ()
 -- print("press key")
 -- test_xyz2lab()
+-- test_illuminant()
 if wait_for_key then
   wait_click(0)
 end
