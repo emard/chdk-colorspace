@@ -658,6 +658,15 @@ function calib_target_xyY()
       xyY[i] = fmath.new(GARDNER2XY1E4[gardner][i],10000)
     end
   end
+  if calib_target_name == "Lab" then
+    local Xr,Yr,Zr = illuminant_XYZ_r()
+    local L,a,b
+    L = fmath.new(calib_L,1)
+    a = fmath.new(calib_a,1)
+    b = fmath.new(calib_b,1)
+    local xr,yr,zr = Lab2xyz(L,a,b)
+    xyY[1],xyY[2],xyY[3] = XYZ2xyY(xr*Xr,yr*Yr,zr*Zr)
+  end
   return xyY[1],xyY[2],xyY[3]
 end
 
