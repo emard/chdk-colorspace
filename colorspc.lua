@@ -1,5 +1,5 @@
 --[[
-@title COLOR SPACE v102
+@title COLOR SPACE v103
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
@@ -368,7 +368,9 @@ function calculate_colorspace()
   --printf("gardner %d: x=0.%d y=0.%d", gardner, GARDNER2XY1E4[gardner][1], GARDNER2XY1E4[gardner][2] )
   --printf("black=%d white=%d", min_level, max_level)
   printf("R=%s G=%s B=%s",str1E3(r,6),str1E3(g,6),str1E3(b,6))
-  printf("x=%s y=%s Y=%s (CIE)",str1E3(CIE_x,6),str1E3(CIE_y,6),str1E3(CIE_Y,6))
+  printf("L=%s a=%s b=%s",str1E3(CIE_L),str1E3(CIE_a),str1E3(CIE_b))
+  printf("X=%s Y=%s Z=%s",str1E3(CIE_X,6),str1E3(CIE_Y,6),str1E3(CIE_Z,6))
+  printf("x=%s y=%s Y=%s",str1E3(CIE_x,6),str1E3(CIE_y,6),str1E3(CIE_Y,6))
   --logfile=io.open("A/colorspc.log","wb")
   --logfile.close()
   return r,g,b
