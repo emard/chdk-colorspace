@@ -24,7 +24,9 @@
 [x] rename draw->stamp
 [ ] calib to XYZ
 [x] output and stamp XYZ
-[ ] LAB values, calibration and output, formula is at
+[x] LAB values, calibration and output, formula is at
     http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
+[x] stamp Lab at calib screen
+[ ] print XYZ and Lab
 [ ] cleanup multiple code and join common parts
     shoot_measure_stamp, calibrate, colorimetry
