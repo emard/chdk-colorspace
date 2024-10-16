@@ -1,17 +1,19 @@
 --[[
-@title COLOR SPACE v103
+@title COLOR SPACE v104
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
-#calib_target=xyY "Calib target" {Lab Gardner xyY} table
+#calib_target=xyY "Calib target" {RAL Lab Gardner xyY} table
 #gardner=11 "Calib Gardner" [1 18]
-#calib_x=333 "Calib x"  [0 999]
-#calib_y=333 "Calib y"  [0 999]
-#calib_Y=333 "Calib Y"  [0 999]
-#lab_illuminant=E "Lab illuminant" {D50 D55 D65 ICC A C E} table
-#calib_L=100 "Calib L" [0 100]
-#calib_a=0 "Calib a" [-127 127]
-#calib_b=0 "Calib b" [-127 127]
+#calib_x=333 "xyY Calib x"  [0 999]
+#calib_y=333 "xyY Calib y"  [0 999]
+#calib_Y=333 "xyY Calib Y"  [0 999]
+#lab_illuminant=E "RAL/Lab illuminant" {D50 D55 D65 ICC A C E} table
+#calib_h=90 "RAL Calib H" [0 359]
+#calib_L=50 "RAL/Lab Calib L" [0 100]
+#calib_C=0 "RAL Calib C" [0 255]
+#calib_a=0 "Lab Calib a" [-127 127]
+#calib_b=0 "Lab Calib b" [-127 127]
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #font_h=200 "Font height" [10 1000]
@@ -91,6 +93,7 @@ digit2seg7 = {
     ["F"]="aefg",
     ["g"]="abcfg",
     ["H"]="fegbc",
+    ["h"]="fegc",
     ["I"]="il",
     ["J"]="bcd",
     ["k"]="fegd",
@@ -99,7 +102,7 @@ digit2seg7 = {
     ["N"]="afebc",
     ["P"]="feabg",
     ["Q"]="abcdefl",
-    ["R"]="afe",
+    ["R"]="feabgl",
     ["r"]="eg",
     ["T"]="ail",
     ["U"]="dfebc",
@@ -362,12 +365,15 @@ function calculate_colorspace()
   local Xr,Yr,Zr = illuminant_XYZ_r()
   local CIE_L,CIE_a,CIE_b = xyz2Lab(CIE_X/Xr,CIE_Y/Yr,CIE_Z/Zr)
   stamp_Lab(CIE_L,CIE_a,CIE_b)
+  local RAL_h,RAL_L,RAL_C = Lab2RAL(CIE_L,CIE_a,CIE_b)
+  stamp_RAL(RAL_h,RAL_L,RAL_C)
 
   set_console_layout(0,0,40,12)
   --printf("meter r=%d g1=%d g2=%d b=%d",r,g1,g2,b)
   --printf("gardner %d: x=0.%d y=0.%d", gardner, GARDNER2XY1E4[gardner][1], GARDNER2XY1E4[gardner][2] )
   --printf("black=%d white=%d", min_level, max_level)
   printf("R=%s G=%s B=%s",str1E3(r,6),str1E3(g,6),str1E3(b,6))
+  printf("h=%s L=%s C=%s",str1E3(RAL_h),str1E3(RAL_L),str1E3(RAL_C))
   printf("L=%s a=%s b=%s",str1E3(CIE_L),str1E3(CIE_a),str1E3(CIE_b))
   printf("X=%s Y=%s Z=%s",str1E3(CIE_X,6),str1E3(CIE_Y,6),str1E3(CIE_Z,6))
   printf("x=%s y=%s Y=%s",str1E3(CIE_x,6),str1E3(CIE_y,6),str1E3(CIE_Y,6))
@@ -588,6 +594,48 @@ function stamp_Lab(L,a,b)
   draw_digits(x_right,y_top+font_nl*2,"b=" .. str1E3(b,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 end
 
+-- additionally stamp hLC (RAL) values
+function stamp_RAL(h,L,C)
+  -- local font_h  = 200        -- digit height Y taken from script arguments
+  local font_small_h = font_h/2
+  local font_w  = font_small_h/2   -- digit width X
+  local font_p  = font_small_h*3/4 -- pitch (column width) X
+  local font_t  = font_small_h/10  -- segment line thickness
+  local font_nl = font_small_h*3/2 -- line (row width) Y
+
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
+
+  -- centered 500 px square (from parameters)
+  --local meter_size_x = 500
+  --local meter_size_y = 400
+
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+
+  -- stamp RGB (color) digits right aligned on the left side
+  -- local x_left = rawop.get_jpeg_left()+400
+  local half,ih,iL,iC
+  half = fmath.new(1,2) -- 0.5
+  ih = (h+half):int()
+  iL = (L+half):int()
+  iC = (C+half):int()
+  ral_str = string.format("RAL %d %d %d hLC",ih,iL,iC)
+  len = #ral_str -- string length
+  local x_center = x1+meter_size_x/2-font_p*len/2 -- + font_p*len -- align center
+  --local x_right = x1+meter_size_x+font_p*2
+  -- y_top aligns digits in y axis above main xyY
+  local y_top = y1+font_nl*5-font_t*2
+
+  -- stamp hLC (white) digits left aligned on the right side
+  --draw_digits(x_right,y_top+font_nl*0,string.format("h=%d", h:int()),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  --draw_digits(x_right,y_top+font_nl*1,string.format("L=%d", L:int()),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  --draw_digits(x_right,y_top+font_nl*2,string.format("C=%d", C:int()),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+
+  -- one-liner RAL, round to nearest int
+  draw_digits(x_center,y_top,ral_str,font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+end
+
 -- title is string
 function stamp_title(title)
   -- local font_h  = 200        -- digit height Y taken from script arguments
@@ -666,6 +714,16 @@ function calib_target_xyY()
     L = fmath.new(calib_L,1)
     a = fmath.new(calib_a,1)
     b = fmath.new(calib_b,1)
+    local xr,yr,zr = Lab2xyz(L,a,b)
+    xyY[1],xyY[2],xyY[3] = XYZ2xyY(xr*Xr,yr*Yr,zr*Zr)
+  end
+  if calib_target_name == "RAL" then
+    local h,L,C,a,b
+    h = fmath.new(calib_h,1)
+    L = fmath.new(calib_L,1)
+    C = fmath.new(calib_C,1)
+    L,a,b = RAL2Lab(h,L,C)
+    local Xr,Yr,Zr = illuminant_XYZ_r()
     local xr,yr,zr = Lab2xyz(L,a,b)
     xyY[1],xyY[2],xyY[3] = XYZ2xyY(xr*Xr,yr*Yr,zr*Zr)
   end
@@ -848,6 +906,7 @@ end
 -- check with https://www.nixsensor.com/free-color-converter/
 -- use illuminant D50 2°
 function test_xyz2lab()
+  local x,y,Y
   x=fmath.new(333,1000)
   y=fmath.new(333,1000)
   Y=fmath.new(333,1000)
@@ -867,6 +926,64 @@ function test_xyz2lab()
   xr,yr,zr = Lab2xyz(L,a,b)
   print("XYZ")
   printvec3({xr*XYZ_r[1],yr*XYZ_r[2],zr*XYZ_r[3]})
+end
+
+-- input float RAL h 0..360, L 0..100 ,C 0..100
+-- output float Lab L 0..100, a -127..127, b -127..127
+function RAL2Lab(h,L,C)
+  local h_rad,a,b
+  h_rad = h*fmath.pi/180
+  a = C*h_rad:cos()
+  b = C*h_rad:sin()
+  return L,a,b
+end
+
+-- input float Lab L 0..100, a -127..127 ,b -127..127
+-- output float RAL h 0..360, L 0..100, C 0..100
+function Lab2RAL(L,a,b)
+  local zero,h,C
+  zero = fmath.new(0,1)
+  C = fmath.sqrt(a*a+b*b)
+  h = zero
+  if a == zero then
+    if b < zero then
+      h = zero-90
+    else
+      h = zero+90
+    end
+  else
+    h = fmath.atan(b/a)*180/fmath.pi
+    if a < zero then
+      if b < zero then
+        h = h-180
+      else
+        h = h+180
+      end
+    end
+  end
+  if h < zero then
+    h = h+360
+  end
+  return h,L,C
+end
+
+-- RAL 210 50 10 = Lab 0.5 -12.99 -7.5
+function test_RAL()
+  local RAL_h,RAL_L,RAL_C
+  RAL_h=fmath.new(210,1)
+  RAL_L=fmath.new( 50,1)
+  RAL_C=fmath.new( 15,1)
+  local RAL = {RAL_h,RAL_L,RAL_C}
+  print("RAL->Lab->RAL")
+  printvec3(RAL)
+  -- convert to Lab
+  local L,a,b = RAL2Lab(RAL_h,RAL_L,RAL_C)
+  local Lab = {L,a,b}
+  printvec3(Lab)
+  -- convert back Lab to RAL
+  RAL_h,RAL_L,RAL_C = Lab2RAL(L,a,b)
+  RAL = {RAL_h,RAL_L,RAL_C}
+  printvec3(RAL)
 end
 -- **** end conversion ****
 
@@ -930,9 +1047,10 @@ end
 -- test_matinv3x3()
 -- test_dot3x3()
 -- test_RGB2XYZ()
--- print("press key")
--- test_xyz2lab()
 -- test_illuminant()
+-- test_xyz2lab()
+-- test_RAL()
+-- print("press key")
 if wait_for_key then
   wait_click(0)
 end
