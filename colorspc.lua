@@ -1,5 +1,5 @@
 --[[
-@title COLOR SPACE v104
+@title COLOR SPACE v105
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
@@ -9,7 +9,7 @@
 #calib_y=333 "xyY Calib y"  [0 999]
 #calib_Y=333 "xyY Calib Y"  [0 999]
 #lab_illuminant=E "RAL/Lab illuminant" {D50 D55 D65 ICC A C E} table
-#calib_h=90 "RAL Calib H" [0 359]
+#calib_h=90 "RAL Calib H" [0 360]
 #calib_L=50 "RAL/Lab Calib L" [0 100]
 #calib_C=0 "RAL Calib C" [0 255]
 #calib_a=0 "Lab Calib a" [-127 127]
