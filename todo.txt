@@ -30,3 +30,5 @@
 [ ] print XYZ and Lab
 [ ] cleanup multiple code and join common parts
     shoot_measure_stamp, calibrate, colorimetry
+[ ] visibility of stamp letters
+    make more contrast, clear background before writing
