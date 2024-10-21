@@ -27,8 +27,8 @@
 [x] LAB values, calibration and output, formula is at
     http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
 [x] stamp Lab at calib screen
-[ ] print XYZ and Lab
+[x] print XYZ and Lab
 [ ] cleanup multiple code and join common parts
     shoot_measure_stamp, calibrate, colorimetry
-[ ] visibility of stamp letters
+[x] visibility of stamp letters
     make more contrast, clear background before writing
