@@ -968,6 +968,7 @@ function RAL2Lab(h,L,C)
   h_rad = h*fmath.pi/180
   a = C*h_rad:cos()
   b = C*h_rad:sin()
+  a,b = fmath.rec(C,h_rad)
   return L,a,b
 end
 
@@ -994,6 +995,8 @@ function Lab2RAL(L,a,b)
       end
     end
   end
+  C,h = fmath.pol(a,b)
+  h = h*180/fmath.pi
   if h < zero then
     h = h+360
   end
@@ -1084,6 +1087,13 @@ end
 -- test_xyz2lab()
 -- test_RAL()
 -- print("press key")
+--local xa = fmath.new(1,2)
+--local ya = fmath.new(1,2)
+--local r,a = fmath.pol(xa,ya)
+--print(str1E3(r),str1E3(a))
+--xa,ya = fmath.rec(r,a)
+--print(str1E3(xa),str1E3(ya))
+
 if wait_for_key then
   wait_click(0)
 end
