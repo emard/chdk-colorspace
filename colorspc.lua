@@ -482,8 +482,8 @@ function meter_square(stamp)
     --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1,16,16,min_level,g1,min_level)
     --rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
     --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
-    -- below the metered area, reproduce the average color bar
-    rawop.fill_rect_rgbg(x1,y1+meter_size_y+meter_size_y/4,meter_size_x,meter_size_y/2,r,g1,b,g2)
+    -- below the metered area, reproduce the average color bar patch
+    rawop.fill_rect_rgbg(x1,y1+meter_size_y+meter_size_y/8,meter_size_x,meter_size_y/2,r,g1,b,g2)
   end
   return r,g1,b,g2
 end
@@ -632,6 +632,9 @@ function stamp_RAL(h,L,C)
   --draw_digits(x_right,y_top+font_nl*1,string.format("L=%d", L:int()),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
   --draw_digits(x_right,y_top+font_nl*2,string.format("C=%d", C:int()),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 
+  -- semi-transparent darkened background for better contrast
+  draw_semitransparent_dark_rect(x_center-(2*font_p-font_w)/2,y_top+(font_nl-font_h)/2,(len+1)*font_p,font_nl)
+
   -- one-liner RAL, round to nearest int
   draw_digits(x_center,y_top,ral_str,font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 end
@@ -660,6 +663,26 @@ function stamp_title(title)
   -- y_top places string above meter area
   local y_top  = y1-font_nl*3/2
   draw_digits(x_left,y_top+font_nl*0,title,font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+end
+
+-- semitransparent gray background
+-- to improve contrast. Blacks every
+-- 2nd RGBG in chequered pattern like this:
+--   0123
+-- 0   rg
+-- 1   gb
+-- 2 rg
+-- 3 gb
+function draw_semitransparent_dark_rect(x,y,w,h)
+  local min_level = rawop.get_black_level() --  128
+  rawop.fill_rect(x  ,y  ,w,h,min_level,4,4)
+  rawop.fill_rect(x+1,y  ,w,h,min_level,4,4)
+  rawop.fill_rect(x  ,y+1,w,h,min_level,4,4)
+  rawop.fill_rect(x+1,y+1,w,h,min_level,4,4)
+  rawop.fill_rect(x+2,y+2,w,h,min_level,4,4)
+  rawop.fill_rect(x+3,y+2,w,h,min_level,4,4)
+  rawop.fill_rect(x+2,y+3,w,h,min_level,4,4)
+  rawop.fill_rect(x+3,y+3,w,h,min_level,4,4)
 end
 
 -- shoot, measure and optionally stamp
