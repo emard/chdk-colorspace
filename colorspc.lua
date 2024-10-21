@@ -1,5 +1,5 @@
 --[[
-@title COLOR SPACE v105
+@title COLOR SPACE v106
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
@@ -513,19 +513,22 @@ function stamp_RGB_xyY(r,g,b,x,y,Y)
   local x_left = x1-font_p*7
   -- y_top centers digits in y axis
   local y_top  = (y1+meter_size_y/2)-font_nl*3/2+(font_nl-font_h)/2
-  draw_digits(x_left,y_top+font_nl*0,str1E3(r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
-  draw_digits(x_left,y_top+font_nl*1,str1E3(g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
+  draw_digits(x_left,y_top          ,str1E3(r,6),font_w,font_h,font_p,font_t, max_level, min_level, min_level)
+  draw_digits(x_left,y_top+font_nl  ,str1E3(g,6),font_w,font_h,font_p,font_t, min_level, max_level, min_level)
   draw_digits(x_left,y_top+font_nl*2,str1E3(b,6),font_w,font_h,font_p,font_t, min_level, min_level, max_level)
 
   -- stamp xyY (white) digits left aligned on the right side
   local x_right = x1+meter_size_x+font_p
-  draw_digits(x_right,y_top+font_nl*0,str1E3(x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right,y_top+font_nl*1,str1E3(y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  len = 7 -- expected string length
+  -- semi-transparent darkened background for better contrast
+  draw_semitransparent_dark_rect(x_right-(2*font_p-font_w)/4,y_top-(font_nl-font_h)/2,len*font_p,font_nl*3)
+  draw_digits(x_right,y_top          ,str1E3(x),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl  ,str1E3(y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right,y_top+font_nl*2,str1E3(Y),font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 
   -- font size calc for lowercase "xy" and uppercase "Y"
-  draw_digits(x_right+font_p*11/2,y_top+font_nl*0+font_h/4,"X",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right+font_p*11/2,y_top+font_nl*1+font_h/4,"Y",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right+font_p*11/2,y_top          +font_h/4,"X",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right+font_p*11/2,y_top+font_nl  +font_h/4,"Y",font_w*3/4,font_h*3/4,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right+font_p*11/2,y_top+font_nl*2,"Y",font_w,font_h,font_p,font_t, max_level, max_level, max_level)
 end
 
@@ -555,9 +558,12 @@ function stamp_XYZ(X,Y,Z)
   -- y_top centers digits in y axis
   local y_top = y1-font_nl*3-font_t*2
 
+  -- semi-transparent darkened background for better contrast
+  draw_semitransparent_dark_rect(x_center-(2*font_p-font_w)/2,y_top-(font_nl-font_small_h)/2,(len+1)*font_p,font_nl*3)
+
   -- stamp XYZ (white) digits left aligned on the right side
-  draw_digits(x_center,y_top+font_nl*0,"X=" .. str1E3(X),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_center,y_top+font_nl*1,"Y=" .. str1E3(Y),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_center,y_top          ,"X=" .. str1E3(X),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_center,y_top+font_nl  ,"Y=" .. str1E3(Y),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_center,y_top+font_nl*2,"Z=" .. str1E3(Z),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 end
 
@@ -588,9 +594,13 @@ function stamp_Lab(L,a,b)
   -- y_top aligns digits in y axis above main xyY
   local y_top = y1-font_nl*5-font_t*2
 
+  local len = 10
+  -- semi-transparent darkened background for better contrast
+  draw_semitransparent_dark_rect(x_right-(2*font_p-font_w)/2,y_top-(font_nl-font_small_h)/2,(len+1)*font_p,font_nl*3)
+
   -- stamp XYZ (white) digits left aligned on the right side
-  draw_digits(x_right,y_top+font_nl*0,"L=" .. str1E3(L,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
-  draw_digits(x_right,y_top+font_nl*1,"A=" .. str1E3(a,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top          ,"L=" .. str1E3(L,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_right,y_top+font_nl  ,"A=" .. str1E3(a,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right,y_top+font_nl*2,"b=" .. str1E3(b,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 end
 
@@ -620,7 +630,7 @@ function stamp_RAL(h,L,C)
   ih = (h+half):int()
   iL = (L+half):int()
   iC = (C+half):int()
-  ral_str = string.format("RAL %d %d %d hLC",ih,iL,iC)
+  ral_str = string.format("RAL %d %d %d HLC",ih,iL,iC)
   len = #ral_str -- string length
   local x_center = x1+meter_size_x/2-font_p*len/2 -- + font_p*len -- align center
   --local x_right = x1+meter_size_x+font_p*2
@@ -633,7 +643,7 @@ function stamp_RAL(h,L,C)
   --draw_digits(x_right,y_top+font_nl*2,string.format("C=%d", C:int()),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 
   -- semi-transparent darkened background for better contrast
-  draw_semitransparent_dark_rect(x_center-(2*font_p-font_w)/2,y_top+(font_nl-font_h)/2,(len+1)*font_p,font_nl)
+  draw_semitransparent_dark_rect(x_center-(2*font_p-font_w)/2,y_top-(font_nl-font_small_h)/2,(len+1)*font_p,font_nl)
 
   -- one-liner RAL, round to nearest int
   draw_digits(x_center,y_top,ral_str,font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
