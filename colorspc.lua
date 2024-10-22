@@ -3,17 +3,11 @@
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
-#calib_target=xyY "Calib target" {RAL Lab Gardner xyY} table
-#gardner=11 "Calib Gardner" [1 18]
-#calib_x=333 "xyY Calib x"  [0 999]
-#calib_y=333 "xyY Calib y"  [0 999]
-#calib_Y=333 "xyY Calib Y"  [0 999]
-#lab_illuminant=E "RAL/Lab illuminant" {D50 D55 D65 ICC A C E} table
-#calib_h=90 "RAL Calib H" [0 360]
-#calib_L=50 "RAL/Lab Calib L" [0 100]
-#calib_C=0 "RAL Calib C" [0 255]
-#calib_a=0 "Lab Calib a" [-127 127]
-#calib_b=0 "Lab Calib b" [-127 127]
+#calib_target=hLC_RAL "Calib target" {Gardner xyY Lab hLC_RAL} table
+#calib1=333 "Calib xLh"  [-999 999]
+#calib2=333 "Calib yaL"  [-999 999]
+#calib3=333 "Calib YbC"  [-999 999]
+#lab_illuminant=E "Lab/hLC illuminant" {D50 D55 D65 ICC A C E} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #font_h=200 "Font height" [10 1000]
@@ -733,32 +727,32 @@ end
 -- return float's xyY
 function calib_target_xyY()
   local xyY = {}
-  xyY[1] = fmath.new(calib_x,1000)
-  xyY[2] = fmath.new(calib_y,1000)
-  xyY[3] = fmath.new(calib_Y,1000)
+  xyY[1] = fmath.new(calib1,1000)
+  xyY[2] = fmath.new(calib2,1000)
+  xyY[3] = fmath.new(calib3,1000)
   local calib_target_name = calib_target[calib_target.index]
   -- if calibration target is Gardner disc
   -- place transparent color in front of camera lens
   -- and point camera to white paper
   if calib_target_name == "Gardner" then
     for i=1,3 do
-      xyY[i] = fmath.new(GARDNER2XY1E4[gardner][i],10000)
+      xyY[i] = fmath.new(GARDNER2XY1E4[calib1][i],10000)
     end
   end
   if calib_target_name == "Lab" then
     local Xr,Yr,Zr = illuminant_XYZ_r()
     local L,a,b
-    L = fmath.new(calib_L,1)
-    a = fmath.new(calib_a,1)
-    b = fmath.new(calib_b,1)
+    L = fmath.new(calib1,1)
+    a = fmath.new(calib2,1)
+    b = fmath.new(calib3,1)
     local xr,yr,zr = Lab2xyz(L,a,b)
     xyY[1],xyY[2],xyY[3] = XYZ2xyY(xr*Xr,yr*Yr,zr*Zr)
   end
-  if calib_target_name == "RAL" then
+  if calib_target_name == "hLC_RAL" then -- RAL
     local h,L,C,a,b
-    h = fmath.new(calib_h,1)
-    L = fmath.new(calib_L,1)
-    C = fmath.new(calib_C,1)
+    h = fmath.new(calib1,1)
+    L = fmath.new(calib2,1)
+    C = fmath.new(calib3,1)
     L,a,b = RAL2Lab(h,L,C)
     local Xr,Yr,Zr = illuminant_XYZ_r()
     local xr,yr,zr = Lab2xyz(L,a,b)
