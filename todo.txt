@@ -32,4 +32,6 @@
     shoot_measure_stamp, calibrate, colorimetry
 [x] visibility of stamp letters
     make more contrast, clear background before writing
-[ ] single input calib data for xyY Lab hLC
+[x] single input calib data for xyY Lab hLC
+[ ] try more timeout to make SX230HS work (slow CPU?)
+[ ] stamp calib target values RAL Lab
