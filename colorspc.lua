@@ -52,7 +52,6 @@ function printmat3x3(m)
     printvec3(m[i])
   end
 end
-
 -- **** end float formatter ****
 
 
