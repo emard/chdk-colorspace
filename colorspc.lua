@@ -483,7 +483,7 @@ function meter_square(stamp)
     --rawop.fill_rect_rgbg(x1,y1 + meter_size_y - 16,16,16,min_level,g2,min_level)
     --rawop.fill_rect_rgbg(x1 + meter_size_x - 16,y1 + meter_size_y - 16,16,16,min_level,min_level,b)
     -- below the metered area, reproduce the average color bar patch
-    rawop.fill_rect_rgbg(x1,y1+meter_size_y+meter_size_y/8,meter_size_x,meter_size_y/2,r,g1,b,g2)
+    rawop.fill_rect_rgbg(x1,y1+meter_size_y+meter_size_y/4,meter_size_x,meter_size_y/2,r,g1,b,g2)
   end
   return r,g1,b,g2
 end
@@ -555,8 +555,10 @@ function stamp_XYZ(X,Y,Z)
   -- local x_left = rawop.get_jpeg_left()+400
   len = 7 -- for string length
   local x_center = x1+meter_size_x/2-(font_p * len)/2 -- align center
-  -- y_top centers digits in y axis
-  local y_top = y1-font_nl*3-font_t*2
+  -- y_top centers digits just above meter square
+  -- local y_top = y1-font_nl*3-font_t*2
+  -- aligned with stamp Lab
+  local y_top = y1-font_nl*5-font_t*2
 
   -- semi-transparent darkened background for better contrast
   draw_semitransparent_dark_rect(x_center-(2*font_p-font_w)/2,y_top-(font_nl-font_small_h)/2,(len+1)*font_p,font_nl*3)
@@ -607,7 +609,7 @@ end
 -- additionally stamp hLC (RAL) values
 function stamp_RAL(h,L,C)
   -- local font_h  = 200        -- digit height Y taken from script arguments
-  local font_small_h = font_h/2
+  local font_small_h = font_h
   local font_w  = font_small_h/2   -- digit width X
   local font_p  = font_small_h*3/4 -- pitch (column width) X
   local font_t  = font_small_h/10  -- segment line thickness
@@ -634,8 +636,10 @@ function stamp_RAL(h,L,C)
   len = #ral_str -- string length
   local x_center = x1+meter_size_x/2-font_p*len/2 -- + font_p*len -- align center
   --local x_right = x1+meter_size_x+font_p*2
-  -- y_top aligns digits in y axis above main xyY
-  local y_top = y1+font_nl*5-font_t*2
+  -- y_top aligns digits in y axis below RGB xyY for small font_h/2
+  -- local y_top = y1+font_nl*3-font_t*2
+  -- y_top aligns digits in y axis below RGB xyY for normal font_h
+  local y_top = y1+font_nl*11/4-font_t*2
 
   -- stamp hLC (white) digits left aligned on the right side
   --draw_digits(x_right,y_top+font_nl*0,string.format("h=%d", h:int()),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
