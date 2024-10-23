@@ -370,8 +370,8 @@ function calculate_colorspace()
   local Xr,Yr,Zr = illuminant_XYZ_r()
   local CIE_L,CIE_a,CIE_b = xyz2Lab(CIE_X/Xr,CIE_Y/Yr,CIE_Z/Zr)
   stamp_Lab(CIE_L,CIE_a,CIE_b)
-  -- todo convert to Luv
-  stamp_Luv(CIE_L,CIE_a,CIE_b)
+  local L_ab,u_ab,v_ab = XYZ2Luv(CIE_X,CIE_Y,CIE_Z)
+  stamp_Luv(L_ab,u_ab,v_ab)
   local RAL_h,RAL_L,RAL_C = Lab2RAL(CIE_L,CIE_a,CIE_b)
   stamp_RAL(RAL_h,RAL_L,RAL_C)
 
@@ -1068,6 +1068,27 @@ function test_RAL()
   RAL_h,RAL_L,RAL_C = Lab2RAL(L,a,b)
   RAL = {RAL_h,RAL_L,RAL_C}
   printvec3(RAL)
+end
+
+function XYZ2Luv(X,Y,Z)
+  local e = fmath.new(216,24389)
+  local k = fmath.new(24389,27)
+  local Xr,Yr,Zr = illuminant_XYZ_r()
+  local u_,v_,u_r,v_r
+  u_  = 4*X/(X+15*Y+3*Z)
+  v_  = 9*Y/(X+15*Y+3*Z)
+  u_r = 4*Xr/(Xr+15*Yr+3*Zr)
+  v_r = 9*Yr/(Xr+15*Yr+3*Zr)
+  yr  = Y/Yr
+  local L,u,v
+  if yr > e then
+    L = 116*yr^fmath.new(1,3)-16
+  else
+    L = k*yr
+  end
+  u = 13*L*(u_-u_r)
+  v = 13*L*(v_-v_r)
+  return L,u,v
 end
 -- **** end conversion ****
 
