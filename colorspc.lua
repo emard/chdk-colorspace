@@ -1090,6 +1090,47 @@ function XYZ2Luv(X,Y,Z)
   v = 13*L*(v_-v_r)
   return L,u,v
 end
+
+function Luv2XYZ(L,u,v)
+  local e = fmath.new(216,24389)
+  local k = fmath.new(24389,27)
+  local Xr,Yr,Zr = illuminant_XYZ_r()
+  local u0,v0
+  u0 = 4*Xr/(Xr+15*Yr+3*Zr)
+  v0 = 9*Yr/(Xr+15*Yr+3*Zr)
+  local X,Y,Z
+  local a,b,c,d
+  a = (52*L/(u+13*L*u0)-1)/3
+  if L>k*e then
+    Y=((L+16)/116)^3
+  else
+    Y=L/k
+  end
+  b = -5*Y
+  c = fmath.new(-1,3) -- -1/3
+  d = Y*(39*L/(v+13*L*v0)-5)
+  X = (d-b)/(a-c)
+  Z = X*a+b
+  return X,Y,Z
+end
+
+function test_Luv()
+  local L,u,v,X,Y,Z,Luv,XYZ
+  L=fmath.new( 70,1)
+  u=fmath.new(-50,1)
+  v=fmath.new( 15,1)
+  Luv = {L,u,v}
+  print("Luv->XYZ->Luv")
+  printvec3(Luv)
+  -- convert Luv to XYZ
+  X,Y,Z = Luv2XYZ(L,u,v)
+  XYZ = {X,Y,Z}
+  printvec3(XYZ)
+  -- convert back XYZ to Luv
+  L,u,v = XYZ2Luv(X,Y,Z)
+  Luv = {L,u,v}
+  printvec3(Luv)
+end
 -- **** end conversion ****
 
 -- **** begin colorimetry, normal operation ****
@@ -1155,6 +1196,7 @@ end
 -- test_illuminant()
 -- test_xyz2lab()
 -- test_RAL()
+-- test_Luv()
 -- print("press key")
 if wait_for_key then
   wait_click(0)
