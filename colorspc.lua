@@ -3,11 +3,11 @@
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
-#calib_target=hLC_RAL "Calib target" {Gardner xyY Lab hLC_RAL} table
-#calib1=333 "Calib xLh"  [-999 999]
-#calib2=333 "Calib yaL"  [-999 999]
-#calib3=333 "Calib YbC"  [-999 999]
-#lab_illuminant=E "Lab/hLC illuminant" {D50 D55 D65 ICC A C E} table
+#calib_target=hLC_RAL "Calib target" {Luv LCh_uv Gardner xyY Lab LCh_ab hLC_RAL} table
+#calib1=333 "Calib xLLhLL"  [-999 999]
+#calib2=333 "Calib yaCLuC"  [-999 999]
+#calib3=333 "Calib YbhCvh"  [-999 999]
+#lab_illuminant=E "Lab/LCh/RAL illuminant" {D50 D55 D65 ICC A C E} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
 #font_h=200 "Font height" [10 1000]
@@ -84,6 +84,7 @@ digit2seg7 = {
     ["d"]="bcged",
     ["E"]="adefg",
     ["F"]="aefg",
+    ["G"]="acdef",
     ["g"]="abcfg",
     ["H"]="fegbc",
     ["h"]="fegc",
@@ -95,10 +96,15 @@ digit2seg7 = {
     ["N"]="afebc",
     ["P"]="feabg",
     ["Q"]="abcdefl",
+    ["q"]="afbgc",
     ["R"]="feabgl",
     ["r"]="eg",
     ["T"]="ail",
+    ["t"]="fedg",
     ["U"]="dfebc",
+    ["u"]="edc",
+    ["V"]="febl",
+    ["v"]="el",
     ["W"]="dfebcl",
     ["X"]="fbgec",
     ["Y"]="fbgcd",
@@ -358,6 +364,8 @@ function calculate_colorspace()
   local Xr,Yr,Zr = illuminant_XYZ_r()
   local CIE_L,CIE_a,CIE_b = xyz2Lab(CIE_X/Xr,CIE_Y/Yr,CIE_Z/Zr)
   stamp_Lab(CIE_L,CIE_a,CIE_b)
+  -- todo convert to Luv
+  stamp_Luv(CIE_L,CIE_a,CIE_b)
   local RAL_h,RAL_L,RAL_C = Lab2RAL(CIE_L,CIE_a,CIE_b)
   stamp_RAL(RAL_h,RAL_L,RAL_C)
 
@@ -583,13 +591,12 @@ function stamp_Lab(L,a,b)
 
   -- stamp RGB (color) digits right aligned on the left side
   -- local x_left = rawop.get_jpeg_left()+400
-  len = 9 -- for string length
+  local len = 10 -- for string length
   --local x_center = x1+meter_size_x/2-(font_p * len)/2 + font_p*len -- align center
   local x_right = x1+meter_size_x+font_p*2
   -- y_top aligns digits in y axis above main xyY
   local y_top = y1-font_nl*5-font_t*2
 
-  local len = 10
   -- semi-transparent darkened background for better contrast
   draw_semitransparent_dark_rect(x_right-(2*font_p-font_w)/2,y_top-(font_nl-font_small_h)/2,(len+1)*font_p,font_nl*3)
 
@@ -597,6 +604,40 @@ function stamp_Lab(L,a,b)
   draw_digits(x_right,y_top          ,"L=" .. str1E3(L,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right,y_top+font_nl  ,"A=" .. str1E3(a,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
   draw_digits(x_right,y_top+font_nl*2,"b=" .. str1E3(b,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+end
+
+function stamp_Luv(L,u,v)
+  -- local font_h  = 200        -- digit height Y taken from script arguments
+  local font_small_h = font_h/2
+  local font_w  = font_small_h/2   -- digit width X
+  local font_p  = font_small_h*3/4 -- pitch (column width) X
+  local font_t  = font_small_h/10  -- segment line thickness
+  local font_nl = font_small_h*3/2 -- line (row width) Y
+
+  local min_level = rawop.get_black_level() --  128
+  local max_level = rawop.get_white_level() -- 4095
+
+  -- centered 500 px square (from parameters)
+  --local meter_size_x = 500
+  --local meter_size_y = 400
+
+  local x1 = rawop.get_raw_width()/2 - meter_size_x/2
+  local y1 = rawop.get_raw_height()/2 - meter_size_y/2
+
+  -- stamp RGB (color) digits right aligned on the left side
+  -- local x_left = rawop.get_jpeg_left()+400
+  local len = 10 -- for string length
+  -- experimentally determined formula alignment
+  local x_left = x1-font_p*(len+2)
+  -- y_top aligns digits in y axis above main xyY
+  local y_top = y1-font_nl*5-font_t*2
+  -- semi-transparent darkened background for better contrast
+  draw_semitransparent_dark_rect(x_left-(2*font_p-font_w)/2,y_top-(font_nl-font_small_h)/2,(len+1)*font_p,font_nl*3)
+
+  -- stamp XYZ (white) digits left aligned on the right side
+  draw_digits(x_left,y_top          ,"L=" .. str1E3(L,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_left,y_top+font_nl  ,"u=" .. str1E3(u,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
+  draw_digits(x_left,y_top+font_nl*2,"v=" .. str1E3(v,8),font_w,font_small_h,font_p,font_t, max_level, max_level, max_level)
 end
 
 -- additionally stamp hLC (RAL) values
@@ -744,6 +785,16 @@ function calib_target_xyY()
     L = fmath.new(calib1,1)
     a = fmath.new(calib2,1)
     b = fmath.new(calib3,1)
+    local xr,yr,zr = Lab2xyz(L,a,b)
+    xyY[1],xyY[2],xyY[3] = XYZ2xyY(xr*Xr,yr*Yr,zr*Zr)
+  end
+  if calib_target_name == "LCh_ab" then
+    local h,L,C,a,b
+    h = fmath.new(calib1,1)
+    L = fmath.new(calib2,1)
+    C = fmath.new(calib3,1)
+    L,a,b = RAL2Lab(h,L,C)
+    local Xr,Yr,Zr = illuminant_XYZ_r()
     local xr,yr,zr = Lab2xyz(L,a,b)
     xyY[1],xyY[2],xyY[3] = XYZ2xyY(xr*Xr,yr*Yr,zr*Zr)
   end
@@ -958,7 +1009,7 @@ function test_xyz2lab()
   printvec3({xr*XYZ_r[1],yr*XYZ_r[2],zr*XYZ_r[3]})
 end
 
--- input float RAL h 0..360, L 0..100 ,C 0..100
+-- input float RAL h 0..360, L 0..100, C 0..100
 -- output float Lab L 0..100, a -127..127, b -127..127
 function RAL2Lab(h,L,C)
   local h_rad,a,b
@@ -967,7 +1018,14 @@ function RAL2Lab(h,L,C)
   return L,a,b
 end
 
--- input float Lab L 0..100, a -127..127 ,b -127..127
+-- input float RAL L 0..100, C 0..100, h 0..360
+-- output float Lab L 0..100, a -127..127, b -127..127
+-- same as RAL2Lab but different argument order
+function LCh2Lab(L,C,h)
+  return RAL2Lab(h,L,C)
+end
+
+-- input float Lab L 0..100, a -127..127, b -127..127
 -- output float RAL h 0..360, L 0..100, C 0..100
 function Lab2RAL(L,a,b)
   local zero = fmath.new(0,1)
@@ -977,6 +1035,14 @@ function Lab2RAL(L,a,b)
     h = h+360
   end
   return h,L,C
+end
+
+-- input float Lab L 0..100, a -127..127, b -127..127
+-- output float LCh L 0..100, C 0..100, h 0..360
+-- same as Lab2RAL but different argument order
+function Lab2LCh(L,a,b)
+  local h,L,C = Lab2RAL(L,a,b)
+  return L,C,h
 end
 
 -- RAL 210 50 10 = Lab 0.5 -12.99 -7.5
