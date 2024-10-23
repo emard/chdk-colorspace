@@ -57,13 +57,13 @@ end
 
 -- **** begin 7-segment display ****
 --
---    aaaa
---   f  i b
---   f  i b
---    gggg
---   e  l c
---   e  l c
---    dddd  .
+--    aaaa     mmnn
+--   f  i b   f  i b
+--   f  i b   f  i b
+--    gggg     jjkk
+--   e  l c   e  l c
+--   e  l c   e  l c
+--    dddd  .  oopp
 --
 digit2seg7 = {
     ["-"]="g",
@@ -84,7 +84,7 @@ digit2seg7 = {
     ["d"]="bcged",
     ["E"]="adefg",
     ["F"]="aefg",
-    ["G"]="acdef",
+    ["G"]="acdefg",
     ["g"]="abcfg",
     ["H"]="fegbc",
     ["h"]="fegc",
@@ -104,7 +104,7 @@ digit2seg7 = {
     ["U"]="dfebc",
     ["u"]="edc",
     ["V"]="febl",
-    ["v"]="el",
+    ["v"]="elok",
     ["W"]="dfebcl",
     ["X"]="fbgec",
     ["Y"]="fbgcd",
@@ -125,7 +125,13 @@ seg7_line = {
     ["f"]={ 0, 1,   0, 4},
     ["g"]={ 1, 5,   4, 5},
     ["i"]={ 3, 1,   3, 4},
+    ["j"]={ 1, 5,   2, 5},
+    ["k"]={ 3, 5,   4, 5},
     ["l"]={ 3, 6,   3, 9},
+    ["m"]={ 1, 0,   2, 0},
+    ["m"]={ 3, 0,   4, 0},
+    ["o"]={ 1,10,   2,10},
+    ["p"]={ 3,10,   4,10},
     ["."]={ 2, 8,   2,10},
   }
 
