@@ -3,10 +3,10 @@
 @chdk_version 1.6
 #calibrate=false "Calibrate"
 #calib_point=1 "Calib point" [1 3]
-#calib_target=hLC_RAL "Calib target" {Luv LCh_uv Gardner xyY Lab LCh_ab hLC_RAL} table
-#calib1=333 "Calib xLLhLL"  [-999 999]
-#calib2=333 "Calib yaCLuC"  [-999 999]
-#calib3=333 "Calib YbhCvh"  [-999 999]
+#calib_target=hLC_RAL "Calib target" {Luv Gardner xyY Lab LCh_ab hLC_RAL} table
+#calib1=333 "Calib xLLhL"  [-999 999]
+#calib2=333 "Calib yaCLu"  [-999 999]
+#calib3=333 "Calib YbhCv"  [-999 999]
 #lab_illuminant=E "Lab/LCh/RAL illuminant" {D50 D55 D65 ICC A C E} table
 #meter_size_x=500 "Meter width X"  [20 999]
 #meter_size_y=400 "Meter height Y" [20 999]
@@ -796,9 +796,9 @@ function calib_target_xyY()
   end
   if calib_target_name == "LCh_ab" then
     local h,L,C,a,b
-    h = fmath.new(calib1,1)
-    L = fmath.new(calib2,1)
-    C = fmath.new(calib3,1)
+    L = fmath.new(calib1,1)
+    C = fmath.new(calib2,1)
+    h = fmath.new(calib3,1)
     L,a,b = RAL2Lab(h,L,C)
     local Xr,Yr,Zr = illuminant_XYZ_r()
     local xr,yr,zr = Lab2xyz(L,a,b)
@@ -813,6 +813,17 @@ function calib_target_xyY()
     local Xr,Yr,Zr = illuminant_XYZ_r()
     local xr,yr,zr = Lab2xyz(L,a,b)
     xyY[1],xyY[2],xyY[3] = XYZ2xyY(xr*Xr,yr*Yr,zr*Zr)
+  end
+  if calib_target_name == "Luv" then
+    local L,u,v
+    L = fmath.new(calib1,1)
+    u = fmath.new(calib2,1)
+    v = fmath.new(calib3,1)
+    local Xr,Yr,Zr = illuminant_XYZ_r()
+    local X,Y,Z = Luv2XYZ(L,u,v)
+    local x,y
+    x,y,Y = XYZ2xyY(X,Y,Z)
+    xyY[1],xyY[2],xyY[3] = XYZ2xyY(X,Y,Z)
   end
   return xyY[1],xyY[2],xyY[3]
 end
